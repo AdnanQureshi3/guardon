@@ -1,67 +1,195 @@
-# Contributing to Guardon
+# 🤝 Contributing to Guardon
 
-Thanks for your interest in contributing! This document explains how to report issues, propose changes, and submit pull requests so we can review and accept contributions quickly.
+**Help make Kubernetes security accessible to every developer!**
 
-## Code of conduct
-Please read and follow the project's [Code of Conduct](./CODE_OF_CONDUCT.md).
+Thanks for your interest in contributing! Guardon is built by developers, for developers, and we welcome contributions from security experts, frontend developers, extension enthusiasts, and Kubernetes newcomers alike.
 
-## How to file a good issue
+## 🌟 Why Contribute?
 
-Preferred issue types:
+- **🚀 Impact thousands of developers** — Guardon helps teams catch security issues before they hit production
+- **🔧 Learn cutting-edge tech** — Work with Chrome extensions, Kubernetes YAML parsing, and security tooling
+- **🏆 Build your portfolio** — Contribute to a project that solves real-world security problems
+- **👥 Join a welcoming community** — We mentor new contributors and celebrate every contribution
+- **📈 Level up your skills** — From beginner-friendly issues to advanced features, grow at your own pace
 
-- Bug report — explain what you expected and what happened, include steps to reproduce, browser/OS, extension version, and any console logs.
-- Feature request — describe the problem and proposed user-facing behavior.
+## 🎯 How Your Contributions Make a Difference
 
-When filing a bug, include:
+Every contribution helps developers worldwide write more secure Kubernetes manifests:
+- **New security rules** → Prevent production incidents
+- **UX improvements** → Make security checks effortless  
+- **Bug fixes** → Keep the extension reliable
+- **Documentation** → Help others contribute and use Guardon effectively
 
-- A minimal reproduction (YAML snippet, steps to reproduce on GitHub/GitLab, or screenshots).
-- Console output from the extension popup (open DevTools for the popup).
-- Any relevant rules or settings you changed in Options.
+## 🚀 Quick Start for Contributors
 
-## Development workflow
+**New to the project?** Here's how to get started in 5 minutes:
 
-1. Fork the repository and create a branch: `git checkout -b feature/your-feature`.
-2. Implement changes with clear, focused commits.
-3. Add or update unit tests for new/changed behavior.
-4. Run tests locally: `npm install` and `npm test` (see README for details).
-5. Push your branch and open a pull request against `main` (or the target branch).
+1. **🍴 Fork the repository** and clone it locally
+2. **🔧 Load the extension** in Chrome (`chrome://extensions` → Developer mode → Load unpacked)
+3. **🧪 Run tests** with `npm install && npm test`
+4. **🎯 Pick an issue** from our [good first issues](https://github.com/guardon-dev/guardon/labels/good-first-issue)
 
-## Pull request guidelines
+**Feeling ambitious?** Check out our [Contributing Issues Guide](./CONTRIBUTING_ISSUES.md) for 10 ready-to-tackle issues!
 
-- Keep PRs small and focused.
-- Add tests that cover new behavior and edge cases.
-- Document noteworthy changes in the PR description.
-- Use descriptive commit messages and a short PR title.
+## 🏷️ Find Your Perfect Issue
 
-We will review PRs in a timely manner. Review feedback is expected — we may request changes before merging.
+| 🟢 **Beginner** | 🟡 **Intermediate** | 🔴 **Advanced** |
+|-----------------|---------------------|-----------------|
+| Add security rules | Refactor components | Build integrations |
+| Fix documentation | Improve UX/UI | Add platform support |
+| Write tests | Performance optimization | Architecture changes |
 
-## Developer Certificate of Origin (DCO)
+**🎁 Bonus:** First-time contributors get a special mention in our release notes!
 
-This project uses the Developer Certificate of Origin (DCO). By contributing,
-you agree that you have the right to submit the work under the project's
-license. When creating commits, include a sign-off line to certify the origin
-of the contribution. For example:
+## 🐛 How to File Outstanding Bug Reports
 
+**Great bug reports save everyone time!** Include:
+
+- **🎯 Clear reproduction steps** — Help us reproduce the issue quickly
+- **📱 Environment details** — Browser version, OS, extension version  
+- **📋 YAML examples** — Minimal examples that trigger the bug
+- **🔍 Console logs** — Open DevTools for the popup and paste relevant errors
+- **💡 Expected vs actual behavior** — What should have happened?
+
+**💎 Pro tip:** Screenshots and GIFs make bug reports incredibly helpful!
+
+## 💡 Feature Requests That Get Built
+
+We love feature requests that:
+
+- **📊 Include user research** — How many users would benefit?
+- **🔧 Propose solutions** — Not just problems, but ideas for solving them
+- **🎨 Include mockups** — Visual ideas help us understand your vision
+- **⚡ Focus on impact** — How does this make Guardon better for everyone?
+
+**🌟 Most requested features:**
+- VS Code integration
+- GitLab/Bitbucket support  
+- Custom rule templates
+- Performance monitoring
+
+## 🛠️ Development Workflow (Streamlined!)
+
+```bash
+# 1. Get the code
+git clone https://github.com/[your-username]/guardon.git
+cd guardon
+
+# 2. Create your feature branch  
+git checkout -b feature/amazing-new-feature
+
+# 3. Set up development environment
+npm install                    # Install test dependencies
+# Load extension in chrome://extensions (Developer mode → Load unpacked)
+
+# 4. Make your changes and test
+npm test                      # Run unit tests
+# Test manually in browser
+
+# 5. Commit with DCO sign-off
+git commit -s -m "feat: add amazing new feature"
+
+# 6. Push and create PR
+git push origin feature/amazing-new-feature
 ```
-git commit -s -m "Fix: example change"
+
+**🎯 Development tips:**
+- **Hot reload**: Changes to popup/options reload automatically
+- **Debugging**: Right-click extension icon → "Inspect popup" for DevTools
+- **Testing**: Focus on `src/utils/` modules where most logic lives
+
+## 🏆 Pull Request Excellence
+
+**What makes a PR mergeable:**
+
+✅ **The Good Stuff:**
+- 🎯 **Focused scope** — One feature/fix per PR
+- 🧪 **Tests included** — Cover new behavior and edge cases  
+- 📝 **Clear description** — What, why, and how
+- 💬 **Descriptive commits** — Future you will thank present you
+- 🔍 **Self-review** — Check your own code first
+
+✅ **Bonus points:**
+- 📚 **Documentation updates** if you change user-facing behavior
+- 🖼️ **Screenshots/GIFs** for UI changes
+- ⚡ **Performance considerations** noted
+- 🛡️ **Security implications** addressed
+
+**🚀 Fast-track to approval:**
+- Reference the issue you're fixing
+- Add "Fixes #123" to auto-close issues
+- Keep PRs under 400 lines when possible
+- Respond to feedback promptly
+
+**⏱️ Review timeline:** We aim to review PRs within 2-3 business days!
+
+## ✍️ Developer Certificate of Origin (DCO)
+
+**TL;DR:** Add `-s` to your git commits to certify you have the right to contribute.
+
+```bash
+git commit -s -m "feat: awesome new security rule"
 ```
 
-The sign-off is a short statement certifying you have the right to submit the
-work and follows the DCO 1.1. If you are unable to sign-off on commits,
-please open an issue so maintainers can advise on alternative contribution
-mechanisms.
+This project uses the Developer Certificate of Origin (DCO) to ensure all contributions are properly licensed. By adding the sign-off, you certify:
 
-## Local testing
+- ✅ You wrote the code or have the right to submit it
+- ✅ You understand it will be distributed under the Apache 2.0 license
+- ✅ You're not introducing any legal issues
 
-- Tests are implemented using Jest for utility modules. Run:
+**Need help with DCO?** Open an issue and we'll guide you through it!
 
-  ```powershell
-  npm install
-  npm test
-  ```
+## 🧪 Testing Made Easy
 
-If you need help running tests or your environment shows errors, open an issue with the `npm` output.
+**Run the full test suite:**
+```bash
+npm install    # One-time setup
+npm test       # Run all tests with coverage
+```
 
-## Repository assets
+**Testing philosophy:**
+- 🎯 **Focus on utilities** — Most tests are in `src/utils/` modules
+- 🔧 **Test behavior, not implementation** — What should happen, not how
+- 🐛 **Cover edge cases** — Malformed YAML, missing fields, etc.
+- 📊 **Maintain coverage** — Aim for >80% on new code
 
-The repository includes an architecture PNG at `assets/architecture-diagram.png` used as a README-friendly diagram. If you want to update the diagram, edit `assets/architecture-diagram.svg` and open a PR with the updated SVG and PNG (maintainers will regenerate or accept an updated PNG).
+**Need help with tests?** Check out `tests/rulesEngine.test.js` for examples!
+
+## 🎨 Repository Assets & Documentation
+
+**Architecture diagrams:**
+- Edit `assets/architecture-diagram.svg` for conceptual changes
+- PNG is auto-generated from SVG via GitHub Actions
+- Include updated diagrams in PRs when changing architecture
+
+**Documentation updates:**
+- 📝 README changes for user-facing features
+- 🔧 Update copilot-instructions.md for new development patterns
+- 📚 Add JSDoc comments for complex functions
+
+## 🌈 Community & Recognition
+
+**🎉 Contributor perks:**
+- 🏆 **Hall of Fame** — Your GitHub profile featured in our README
+- 📝 **Release notes mention** — Credit in release announcements  
+- 🎁 **Maintainer nomination** — Active contributors can become maintainers
+- 📢 **Social media shoutouts** — We love promoting our contributors!
+
+**💬 Get support:**
+- 💭 [GitHub Discussions](https://github.com/guardon-dev/guardon/discussions) for questions
+- 🐛 [Issues](https://github.com/guardon-dev/guardon/issues) for bugs and features
+- 📧 Email maintainers for security issues
+
+**📜 Code of Conduct:**
+We're committed to a welcoming, inclusive community. Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) — we take it seriously and appreciate contributors who do too.
+
+---
+
+## 🚀 Ready to Contribute?
+
+1. **⭐ Star the repo** if you haven't already
+2. **🔍 Browse [good first issues](https://github.com/guardon-dev/guardon/labels/good-first-issue)**
+3. **💬 Comment on an issue** to claim it
+4. **🛠️ Start coding** and make Kubernetes security better for everyone!
+
+**Questions?** Don't hesitate to ask — we're here to help you succeed! 🎯

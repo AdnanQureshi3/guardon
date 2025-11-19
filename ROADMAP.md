@@ -2,14 +2,30 @@ Planned items
 -------------
 The roadmap items below reflect core capabilities and long-term goals for Guardon. They are listed as roadmap entries without a timeline — prioritization will be driven by user demand, security needs, and contributor availability.
 
+## 🤖 AI-Powered Security (Next Generation)
+
+- **AI Security Explainer**
+  - Provide intelligent, context-aware explanations for security violations using LLM-generated content. Include risk assessment, attack scenarios, real-world examples, and compliance mapping with clear opt-in privacy controls.
+
+- **Smart Fix Generator**  
+  - Generate context-aware security fixes that analyze YAML content, learn organizational patterns, and provide multiple remediation options with confidence scores and detailed explanations.
+
+- **Natural Language Rule Creator**
+  - Allow users to create custom security rules using natural language descriptions. AI translates requirements like "flag containers mounting sensitive host paths" into proper rule definitions.
+
+- **Vulnerability Prediction Engine**
+  - Implement machine learning to predict security issues before they become violations by analyzing configuration patterns, generating risk scores, and providing early warnings.
+
+- **Security Learning Dashboard**
+  - AI-powered analytics showing team security maturity, common mistakes, improvement trends, and personalized learning recommendations with industry benchmarking.
+
+## 🛠️ Core Platform Features
+
 - Telemetry (Opt-in)
   - Aggregate anonymous, opt-in statistics such as "top 5 violated rules" to help prioritize rule improvements and understand common misconfigurations.
 
 - OPA / Rego Integration Support
   - Provide import and interpretation support for Gatekeeper/OPA Rego and Kyverno policies, enabling direct use of existing policy sets.
-
-- AI‑Explainable Guardrails
-  - Offer human-friendly explanations for why a policy failed using LLM-generated text. Support offline small models or optional API-based prompts, with clear opt-in and privacy controls.
 
 - Rule Severity & Scoring
   - Compute a compliance score for YAML (0–100) and attach severity-weighted scoring to rule sets for quick risk assessments.

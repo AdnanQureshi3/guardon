@@ -169,8 +169,57 @@ npm test       # Run all tests with coverage
 
 ## 🌈 Community & Recognition
 
-**🎉 Contributor perks:**
-- 🏆 **Hall of Fame** — Your GitHub profile featured in our README
+### 🏅 Contributor Badges & Achievements
+
+**Earn recognition for your contributions! We celebrate every milestone:**
+
+| Badge | Achievement | How to Earn |
+|-------|------------|-------------|
+| � **First Timer** | Your first merged PR | Submit and get your first pull request merged |
+| 🐛 **Bug Hunter** | Fixed a confirmed bug | Submit a PR that fixes a reported bug |
+| 🔒 **Security Champion** | Added security rules | Contribute new security rules or improve existing ones |
+| 🎨 **UX Enhancer** | Improved user experience | Make UI/UX improvements that users love |
+| 🧪 **Test Master** | Boosted test coverage | Add comprehensive tests that improve coverage |
+| 📚 **Documentation Hero** | Enhanced documentation | Improve docs, guides, or help materials |
+| 🤖 **AI Pioneer** | Built AI features | Contribute to AI-powered functionality |
+| 🏗️ **Architecture Architect** | Made structural improvements | Refactor code or improve system design |
+| 💎 **Code Quality Guardian** | Improved code standards | Add linting, formatting, or quality improvements |
+| 🚀 **Performance Optimizer** | Enhanced performance | Make measurable performance improvements |
+| 🌍 **Platform Expander** | Added platform support | Extend support to new platforms (GitLab, VS Code, etc.) |
+| 👑 **Top Contributor** | 10+ merged PRs | Achieve 10 or more merged contributions |
+
+**🎖️ Special Recognition:**
+- **⭐ Monthly MVP**: Most impactful contributor each month
+- **🏆 Annual Champion**: Outstanding contributions throughout the year
+- **🎯 Problem Solver**: Tackle and solve complex, long-standing issues
+- **🧑‍🏫 Mentor**: Help guide and support new contributors
+
+### 🎁 **Contributor Rewards**
+
+**📜 GitHub Profile Features:**
+- ✅ **README Hall of Fame** with your GitHub profile and contributions
+- 🔗 **Personal project links** in our contributor showcase
+- 📊 **Contribution stats** highlighting your impact
+
+**📢 Social Media Shoutouts:**
+- 🐦 **Twitter features** celebrating your contributions
+- 💼 **LinkedIn endorsements** for your open source work
+- 📝 **Blog post features** about significant contributions
+
+**🎯 Career Benefits:**
+- 📋 **Recommendation letters** for outstanding contributors
+- 🗣️ **Conference talk opportunities** about your Guardon work
+- 🤝 **Professional references** from project maintainers
+- 🎤 **Podcast appearances** discussing your contributions
+
+**🏢 Maintainer Track:**
+- 👥 **Maintainer nomination** for consistent, high-quality contributions
+- 🔑 **Repository access** and decision-making responsibilities
+- 🎯 **Project direction input** on roadmap and feature priorities
+- 📅 **Community leadership** opportunities
+
+**🎁 Bonus perks:**
+- 🏆 **Release notes mention** — Credit in release announcements  
 - 📝 **Release notes mention** — Credit in release announcements  
 - 🎁 **Maintainer nomination** — Active contributors can become maintainers
 - 📢 **Social media shoutouts** — We love promoting our contributors!

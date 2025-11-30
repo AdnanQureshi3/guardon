@@ -1,0 +1,481 @@
+[
+    {
+        "id":  "no-root-containers",
+        "description":  "Containers should not run as root user",
+        "match":  "spec.template.spec.containers[*].securityContext.runAsUser",
+        "pattern":  "^0$",
+        "required":  false,
+        "severity":  "error",
+        "message":  "Container is running as root. Set runAsUser to a non-zero value for security.",
+        "kind":  "Deployment,StatefulSet,DaemonSet,Job,CronJob",
+        "rationale":  "Running containers as root violates security best practices and increases attack surface. Security teams commonly reject PRs with root containers, causing deployment delays and compliance escalations.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/security/pod-security-standards/",
+                           "https://www.cisecurity.org/benchmark/kubernetes"
+                       ],
+        "fix":  {
+                    "action":  "replace",
+                    "value":  "1001",
+                    "hint":  "Change runAsUser from 0 to a non-zero value like 1001"
+                }
+    },
+    {
+        "id":  "no-root-containers-global",
+        "description":  "Pod security context should enforce non-root execution",
+        "match":  "spec.template.spec.securityContext.runAsUser",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Pod securityContext should specify runAsUser as non-root.",
+        "kind":  "Deployment,StatefulSet,DaemonSet,Job,CronJob",
+        "rationale":  "Pod-level security context provides defense-in-depth against root execution.",
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "runAsUser":  1001,
+                                  "runAsNonRoot":  true,
+                                  "fsGroup":  1001
+                              }
+                }
+    },
+    {
+        "id":  "require-cpu-requests",
+        "description":  "Containers must specify CPU requests for proper scheduling",
+        "match":  "spec.template.spec.containers[*].resources.requests.cpu",
+        "pattern": "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Missing CPU requests leads to unpredictable scheduling and node pressure.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Missing CPU requests cause unpredictable scheduling, node pressure, and autoscaler adding unnecessary EC2 nodes, leading to AWS cost explosion.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+                       ],
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "requests":  {
+                                                   "cpu":  "100m",
+                                                   "memory":  "128Mi"
+                                               }
+                              },
+                    "hint":  "Add appropriate CPU and memory requests based on application needs"
+                }
+    },
+    {
+        "id":  "require-memory-requests",
+        "description":  "Containers must specify memory requests for proper scheduling",
+        "match":  "spec.template.spec.containers[*].resources.requests.memory",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Missing memory requests can cause OOM kills and scheduling issues.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Missing memory requests lead to unpredictable scheduling and potential out-of-memory kills.",
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "requests":  {
+                                                   "memory":  "128Mi"
+                                               }
+                              }
+                }
+    },
+    {
+        "id":  "require-cpu-limits",
+        "description":  "Containers must specify CPU limits to prevent resource contention",
+        "match":  "spec.template.spec.containers[*].resources.limits.cpu",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "warning",
+        "message":  "Missing CPU limits can cause resource contention and noisy neighbor issues.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "CPU limits prevent containers from consuming all available CPU and affecting other workloads.",
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "limits":  {
+                                                 "cpu":  "500m",
+                                                 "memory":  "512Mi"
+                                             }
+                              }
+                }
+    },
+    {
+        "id":  "require-memory-limits",
+        "description":  "Containers must specify memory limits to prevent OOM kills",
+        "match":  "spec.template.spec.containers[*].resources.limits.memory",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Missing memory limits can cause OOM kills and node instability.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Memory limits prevent containers from consuming all available memory and causing node instability.",
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "limits":  {
+                                                 "memory":  "512Mi"
+                                             }
+                              }
+                }
+    },
+    {
+        "id":  "no-latest-tag",
+        "description":  "Avoid using \u0027latest\u0027 image tag for reproducible deployments",
+        "match":  "spec.template.spec.containers[*].image",
+        "pattern":  ":latest$|^[^:]+$",
+        "required":  false,
+        "severity":  "error",
+        "message":  "Using \u0027latest\u0027 tag makes debugging impossible and rollbacks take longer, causing SRE teams to lose hours.",
+        "kind":  "Deployment,StatefulSet,DaemonSet,Job,CronJob",
+        "rationale":  "Using \u0027latest\u0027 or no tag makes debugging impossible and rollbacks take longer, causing SRE teams to lose hours troubleshooting.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/containers/images/#image-names"
+                       ],
+        "fix":  {
+                    "action":  "replace",
+                    "value":  "nginx:1.21-alpine",
+                    "hint":  "Use specific version tags like nginx:1.21-alpine instead of latest"
+                }
+    },
+    {
+        "id":  "require-liveness-probe",
+        "description":  "Containers must have liveness probes to detect unhealthy pods",
+        "match":  "spec.template.spec.containers[*].livenessProbe",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Missing liveness probes is the #1 cause of \u0027app is running but not responding\u0027 incidents.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Missing liveness probes is the #1 cause of \u0027the app is running but not responding\u0027 incidents, leading to manual intervention and downtime.",
+        "references":  [
+                           "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
+                       ],
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "httpGet":  {
+                                                  "path":  "/health",
+                                                  "port":  8080
+                                              },
+                                  "initialDelaySeconds":  30,
+                                  "periodSeconds":  10
+                              },
+                    "hint":  "Add liveness probe with appropriate health check endpoint"
+                }
+    },
+    {
+        "id":  "require-readiness-probe",
+        "description":  "Containers must have readiness probes for proper traffic routing",
+        "match":  "spec.template.spec.containers[*].readinessProbe",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Missing readiness probes cause traffic to be routed to non-ready pods.",
+        "kind":  "Deployment,StatefulSet",
+        "rationale":  "Readiness probes prevent traffic from being routed to pods that aren\u0027t ready to serve requests.",
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "httpGet":  {
+                                                  "path":  "/ready",
+                                                  "port":  8080
+                                              },
+                                  "initialDelaySeconds":  10,
+                                  "periodSeconds":  5
+                              }
+                }
+    },
+    {
+        "id":  "validate-aws-lb-annotations",
+        "description":  "AWS Load Balancer annotations must be properly configured",
+        "match":  "metadata.annotations",
+        "pattern":  "service\\.beta\\.kubernetes\\.io/aws-load-balancer-type",
+        "severity":  "warning",
+        "message":  "Verify AWS Load Balancer annotations are correct to prevent traffic outages.",
+        "kind":  "Service",
+        "rationale":  "Incorrect load balancer type, missing SSL certificate ARN, or ALB vs NLB mismatch cause traffic outages or hours of troubleshooting.",
+        "references":  [
+                           "https://kubernetes-sigs.github.io/aws-load-balancer-controller/"
+                       ],
+        "required":  false
+    },
+    {
+        "id":  "prevent-cpu-over-request",
+        "description":  "Prevent excessive CPU requests that trigger unnecessary node scaling",
+        "match":  "spec.template.spec.containers[*].resources.requests.cpu",
+        "pattern":  "^[4-9]\\d*$|^\\d{2,}$",
+        "severity":  "warning",
+        "message":  "Excessive CPU requests (4+ cores) may trigger unnecessary node scaling and increase costs.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Over-requesting CPU causes cluster autoscaler to spin up multiple nodes, significantly increasing monthly bills.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-requests-and-limits"
+                       ],
+        "required":  false
+    },
+    {
+        "id":  "prevent-memory-over-request",
+        "description":  "Prevent excessive memory requests that trigger unnecessary node scaling",
+        "match":  "spec.template.spec.containers[*].resources.requests.memory",
+        "pattern":  "[8-9]Gi|\\d{2,}Gi",
+        "severity":  "warning",
+        "message":  "Excessive memory requests (8Gi+) may trigger unnecessary node scaling and increase costs.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Over-requesting memory causes cluster autoscaler to spin up multiple nodes, significantly increasing monthly bills.",
+        "required":  false
+    },
+    {
+        "id":  "warn-under-requesting",
+        "description":  "Warn about potentially insufficient resource requests",
+        "match":  "spec.template.spec.containers[*].resources.requests.cpu",
+        "pattern":  "^[1-9]m$|^[1-4]\\dm$",
+        "severity":  "info",
+        "message":  "Very low CPU requests may cause throttling under load. Consider increasing if performance issues occur.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Under-requesting resources causes services to get throttled under load, leading to on-call pages.",
+        "required":  false
+    },
+    {
+        "id":  "no-hostpath-volumes",
+        "description":  "Avoid hostPath volumes that create node lock-in",
+        "match":  "spec.template.spec.volumes[*].hostPath",
+        "pattern":  "null",
+        "required":  false,
+        "severity":  "error",
+        "message":  "HostPath volumes create node lock-in, causing rolling upgrades to fail and outages.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "HostPath creates node lock-in, causing rolling upgrades to fail and leading to outages.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/storage/volumes/#hostpath"
+                       ]
+    },
+    {
+        "id":  "recommend-hpa",
+        "description":  "Recommend HPA for services to handle peak-time load",
+        "match":  "spec.template.spec.containers[*].resources.requests.cpu",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "info",
+        "message":  "Consider adding HorizontalPodAutoscaler for this deployment to handle peak-time failures.",
+        "kind":  "Deployment",
+        "rationale":  "Missing HPA leads to peak-time failures when traffic exceeds static replica counts."
+    },
+    {
+        "id":  "enforce-gp3-storage",
+        "description":  "Use GP3 storage class instead of GP2 for better performance and cost",
+        "match":  "spec.storageClassName",
+        "pattern":  "gp2",
+        "severity":  "warning",
+        "message":  "Using GP2 instead of GP3 leads to unnecessary cost and performance bottlenecks.",
+        "kind":  "PersistentVolumeClaim",
+        "rationale":  "Using GP2 instead of GP3 leads to unnecessary cost and performance bottlenecks on AWS.",
+        "references":  [
+                           "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html"
+                       ],
+        "fix":  {
+                    "action":  "replace",
+                    "value":  "gp3",
+                    "hint":  "Replace gp2 with gp3 storage class for better performance and cost"
+                },
+        "required":  false
+    },
+    {
+        "id":  "no-wildcard-ingress",
+        "description":  "Avoid wildcard hosts in Ingress that violate security controls",
+        "match":  "spec.rules[*].host",
+        "pattern":  "^\\*\\.",
+        "severity":  "error",
+        "message":  "Wildcard Ingress hosts violate security controls and increase attack surface.",
+        "kind":  "Ingress",
+        "rationale":  "Wildcard hosts violate security controls by allowing access to unintended subdomains.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/services-networking/ingress/"
+                       ],
+        "required":  true
+    },
+    {
+        "id":  "require-network-policies",
+        "description":  "Deployments should have associated NetworkPolicies for network segmentation",
+        "match":  "spec.template.metadata.labels",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "warning",
+        "message":  "Missing NetworkPolicies create a flat network with high blast radius.",
+        "kind":  "Deployment,StatefulSet",
+        "rationale":  "Flat network without NetworkPolicies creates high blast radius for security incidents.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/services-networking/network-policies/"
+                       ]
+    },
+    {
+        "id":  "require-pod-disruption-budget",
+        "description":  "High availability services should have PodDisruptionBudgets",
+        "match":  "spec.replicas",
+        "pattern":  "^[2-9]$|^[1-9]\\d+$",
+        "severity":  "warning",
+        "message":  "Services with multiple replicas should have PodDisruptionBudgets to prevent downtime during node drains.",
+        "kind":  "Deployment,StatefulSet",
+        "rationale":  "During node drains/rolling updates, services without PDB can go completely down, causing outages.",
+        "references":  [
+                           "https://kubernetes.io/docs/tasks/run-application/configure-pdb/"
+                       ],
+        "required":  true
+    },
+    {
+        "id":  "require-topology-spread",
+        "description":  "Multi-replica deployments should use topology spread constraints",
+        "match":  "spec.template.spec.topologySpreadConstraints",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "warning",
+        "message":  "Missing topology spread constraints can cause all pods to be scheduled on one node (single point of failure).",
+        "kind":  "Deployment,StatefulSet",
+        "rationale":  "Without topology spread constraints, all pods can be scheduled on one node, creating a single point of failure.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/"
+                       ],
+        "fix":  {
+                    "action":  "insert",
+                    "value":  [
+                                  {
+                                      "maxSkew":  1,
+                                      "topologyKey":  "kubernetes.io/hostname",
+                                      "whenUnsatisfiable":  "DoNotSchedule",
+                                      "labelSelector":  {
+                                                            "matchLabels":  {
+                                                                                "app":  "your-app"
+                                                                            }
+                                                        }
+                                  }
+                              ]
+                }
+    },
+    {
+        "id":  "validate-ebs-access-modes",
+        "description":  "EBS volumes should not use ReadWriteMany access mode",
+        "match":  "spec.accessModes",
+        "pattern":  "ReadWriteMany",
+        "severity":  "error",
+        "message":  "EBS doesn\u0027t support ReadWriteMany access mode, causing deployment failures.",
+        "kind":  "PersistentVolumeClaim",
+        "rationale":  "EBS doesn\u0027t support ReadWriteMany access mode, causing immediate deployment failures.",
+        "references":  [
+                           "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volumes.html"
+                       ],
+        "fix":  {
+                    "action":  "replace",
+                    "value":  "ReadWriteOnce",
+                    "hint":  "Use ReadWriteOnce for EBS volumes"
+                },
+        "required":  true
+    },
+    {
+        "id":  "require-security-context-capabilities",
+        "description":  "Containers should drop unnecessary capabilities",
+        "match":  "spec.template.spec.containers[*].securityContext.capabilities.drop",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "warning",
+        "message":  "Containers should drop ALL capabilities and add only required ones.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Dropping unnecessary capabilities reduces attack surface and follows principle of least privilege.",
+        "references":  [
+                           "https://kubernetes.io/docs/tasks/configure-pod-container/security-context/"
+                       ],
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "drop":  [
+                                               "ALL"
+                                           ]
+                              },
+                    "hint":  "Add capabilities.drop: [ALL] to security context"
+                }
+    },
+    {
+        "id":  "require-readonly-filesystem",
+        "description":  "Containers should use read-only root filesystem when possible",
+        "match":  "spec.template.spec.containers[*].securityContext.readOnlyRootFilesystem",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "info",
+        "message":  "Consider using readOnlyRootFilesystem: true for better security.",
+        "kind":  "Deployment,StatefulSet,DaemonSet",
+        "rationale":  "Read-only root filesystem prevents runtime modifications and improves security posture.",
+        "fix":  {
+                    "action":  "insert",
+                    "value":  {
+                                  "readOnlyRootFilesystem":  true
+                              }
+                }
+    },
+    {
+        "id":  "require-termination-grace-period",
+        "description":  "Services should have appropriate termination grace period for graceful shutdown",
+        "match":  "spec.template.spec.terminationGracePeriodSeconds",
+        "pattern":  "^[0-9]$|^[12]\\d$",
+        "severity":  "warning",
+        "message":  "Short termination grace period may cause SIGKILL before cleanup, leading to customer-facing 502/499 errors.",
+        "kind":  "Deployment,StatefulSet",
+        "rationale":  "Services get SIGKILL before cleanup, causing customer-facing 502/499 errors during rolling updates.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination"
+                       ],
+        "fix":  {
+                    "action":  "replace",
+                    "value":  "60",
+                    "hint":  "Increase terminationGracePeriodSeconds to 60+ for graceful shutdown"
+                },
+        "required":  true
+    },
+    {
+        "id":  "require-irsa-annotations",
+        "description":  "Pods using AWS services should have IRSA service account annotations",
+        "match":  "spec.template.spec.serviceAccount",
+        "pattern":  "null",
+        "required":  true,
+        "severity":  "error",
+        "message":  "Pods without IRSA run with node IAM role, creating massive security risk.",
+        "kind":  "Deployment,StatefulSet,Job",
+        "rationale":  "Pods without IRSA annotations run with the node IAM role, creating a massive security risk by over-privileging workloads.",
+        "references":  [
+                           "https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html"
+                       ]
+    },
+    {
+        "id":  "no-default-service-account",
+        "description":  "Pods should not use default service account",
+        "match":  "spec.template.spec.serviceAccount",
+        "pattern":  "^$|^default$",
+        "severity":  "warning",
+        "message":  "Pods using default service account violate compliance policies.",
+        "kind":  "Deployment,StatefulSet,DaemonSet,Job,CronJob",
+        "rationale":  "Using default service account violates compliance policies and follows poor security practices.",
+        "references":  [
+                           "https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/"
+                       ],
+        "fix":  {
+                    "action":  "replace",
+                    "value":  "my-service-account",
+                    "hint":  "Create and specify a dedicated service account"
+                },
+        "required":  false
+    },
+    {
+        "id":  "limit-loadbalancer-services",
+        "description":  "Avoid unnecessary LoadBalancer services that increase AWS costs",
+        "match":  "spec.type",
+        "pattern":  "LoadBalancer",
+        "severity":  "warning",
+        "message":  "LoadBalancer services spawn $15-30/month AWS ELBs plus data transfer fees. Consider using Ingress instead.",
+        "kind":  "Service",
+        "rationale":  "Each LoadBalancer service spawns a $15-$30/month AWS ELB plus data transfer fees. Many services can share an Ingress instead.",
+        "references":  [
+                           "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+                           "https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html"
+                       ],
+        "required":  false
+    }
+]

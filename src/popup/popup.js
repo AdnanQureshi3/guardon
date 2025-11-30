@@ -32,6 +32,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (bootStatus) bootStatus.textContent = 'Error loading validation engine — see console for details.';
     // Keep running so manual paste may still work; but mark validation unavailable.
   }
+  // Try to import cluster schema validator (optional)
+  let validateSchemaYaml = null;
+  try {
+    const csMod = await import('../utils/clusterSchema.js');
+    validateSchemaYaml = csMod.validateYamlAgainstClusterSchemas;
+  } catch (e) {
+    console.debug('clusterSchema validator not available in popup', e && e.message);
+  }
   const validateAvailable = typeof validateYaml === 'function';
   const previewAvailable = typeof previewPatchedYaml === 'function';
 
@@ -79,15 +87,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  // Try to get YAML text/selection by messaging the content script first (safer, doesn't require scripting permission)
+  // Always show manual paste option for non-GitHub/GitLab pages
+  const pageUrl = new URL(tab.url);
+  const isGithub = pageUrl.host === 'github.com' || pageUrl.host === 'www.github.com';
+  const isGitlab = pageUrl.host === 'gitlab.com' || pageUrl.host === 'www.gitlab.com';
+
   let yamlText = null;
   let fetchedFromGithub = false;
   let fetchedUrl = null;
+
+  if (!isGithub && !isGitlab) {
+    // Always show manual paste UI for non-GitHub/GitLab
+    showManualPasteUI();
+    return;
+  }
+
+  // Try to get YAML text/selection by messaging the content script first
   try {
     yamlText = await new Promise((resolve) => {
       chrome.tabs.sendMessage(tab.id, { type: "GET_YAML" }, (resp) => {
         if (chrome.runtime.lastError) return resolve(null);
-        // content script returns { yamlText: string } or a plain string
         if (!resp) return resolve(null);
         if (typeof resp === 'string') return resolve(resp);
         return resolve(resp.yamlText || null);
@@ -98,123 +117,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     yamlText = null;
   }
 
-  // If messaging didn't return YAML, fall back to executeScript (use MAIN world for better selection access)
-  // If messaging didn't return YAML, try fetching raw file from GitHub when on a blob URL
+  // If no YAML found, show manual paste UI on GitHub/GitLab
   if (!yamlText) {
-    try {
-      const pageUrl = new URL(tab.url);
-      // Handle GitHub blob URLs -> raw.githubusercontent.com conversion
-      if ((pageUrl.host === 'github.com' || pageUrl.host === 'www.github.com') && pageUrl.pathname.includes('/blob/')) {
-        const parts = pageUrl.pathname.split('/').filter(Boolean); // [user, repo, 'blob', branch, ...path]
-        const blobIndex = parts.indexOf('blob');
-        if (blobIndex !== -1 && parts.length > blobIndex + 2) {
-          const owner = parts[0];
-          const repo = parts[1];
-          const branch = parts[blobIndex + 1];
-          const filePath = parts.slice(blobIndex + 2).join('/');
-          const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`;
-          try {
-            // Prefer background service-worker fetch first to avoid any
-            // page/frame sandboxing or CORS restrictions that can block
-            // script execution when attempted from the page/popup context.
-            let obtained = false;
-            try {
-              const bgResp = await new Promise((resolve) => {
-                chrome.runtime.sendMessage({ type: 'FETCH_RAW', url: rawUrl }, (r) => resolve(r));
-              });
-              if (bgResp && bgResp.ok && typeof bgResp.text === 'string') {
-                const text = bgResp.text;
-                if (/apiVersion:|kind:|metadata:/i.test(text)) {
-                  yamlText = text;
-                  fetchedFromGithub = true;
-                  fetchedUrl = rawUrl;
-                  obtained = true;
-                }
-              } else {
-                if (bgResp && bgResp.error) console.debug('Background fetch error', bgResp.error);
-              }
-            } catch (e) {
-              console.debug('Background fetch attempt failed', e);
-            }
-
-            // If background fetch didn't yield content, fall back to direct fetch
-            if (!obtained) {
-              try {
-                const resp2 = await fetch(rawUrl);
-                if (resp2 && resp2.ok) {
-                  const text = await resp2.text();
-                  if (/apiVersion:|kind:|metadata:/i.test(text)) {
-                    yamlText = text;
-                    fetchedFromGithub = true;
-                    fetchedUrl = rawUrl;
-                    obtained = true;
-                  }
-                }
-              } catch (e) {
-                console.debug('Direct fetch fallback failed', e);
-              }
-            }
-
-            if (!obtained) {
-              console.debug('Failed to obtain raw GitHub URL via background or direct fetch', rawUrl);
-            }
-          } catch (e) {
-            console.debug('Unexpected error while attempting raw fetch', rawUrl, e);
-          }
-        }
-      }
-    } catch (e) {
-      // ignore URL parsing errors
-    }
+    showManualPasteUI();
+    return;
   }
 
-  // If still no yamlText, fall back to executeScript
-  if (!yamlText) {
-    try {
-      const execRes = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          const selection = (window.getSelection && window.getSelection().toString && window.getSelection().toString()) || null;
-          if (selection && /apiVersion:|kind:|metadata:/i.test(selection)) return selection;
-
-          const selectors = [".blob-code-inner", ".js-file-line", ".highlight pre", "pre", "code", ".markdown-body pre", ".file .line", ".blob-code"];
-          for (const s of selectors) {
-            const found = document.querySelectorAll(s);
-            if (found && found.length) {
-              const text = Array.from(found).map(b => b.textContent).join("\n");
-              if (/apiVersion:|kind:|metadata:/i.test(text)) return text;
-            }
-          }
-
-          if (/\.ya?ml($|\?|#)|\/raw\/|\/blob\//i.test(location.href)) return document.body ? document.body.innerText : null;
-          return null;
-        },
-        world: 'MAIN'
-      });
-      if (execRes && execRes[0] && typeof execRes[0].result === 'string') yamlText = execRes[0].result;
-    } catch (err) {
-      console.error('scripting.executeScript fallback failed', err);
-      yamlText = null;
-    }
-  }
-
-  if (!yamlText) {
+  function showManualPasteUI() {
     noYaml.style.display = "block";
     statusBadge.textContent = "NO YAML";
     statusBadge.className = "status info";
     statusBadge.style.display = "inline-block";
     statusBadge.classList.add('pulse');
-    // Show manual textarea so user can paste YAML
     const manualDiv = document.getElementById('manual');
     const manualArea = document.getElementById('manualYaml');
-    // show the entire manual block (label + controls)
     if (manualDiv) manualDiv.style.display = 'block';
     if (manualArea) manualArea.style.display = 'block';
-    // Ensure fetched notice hidden when manual paste is shown
     const fetchedNotice = document.getElementById('fetchedNotice');
     if (fetchedNotice) fetchedNotice.style.display = 'none';
-
-    // wire manual validate button
     const validateManualBtn = document.getElementById('validateManual');
     if (validateManualBtn) {
       validateManualBtn.onclick = async () => {
@@ -225,7 +145,59 @@ document.addEventListener("DOMContentLoaded", async () => {
         const content = (document.getElementById('manualYaml') || { value: '' }).value;
         if (!content) return;
         try {
-          const results = await validateYaml(content, await (async () => { const { customRules } = await chrome.storage.local.get('customRules'); return customRules || []; })());
+          // Run Guardon rules
+          const { customRules } = await chrome.storage.local.get('customRules');
+          const rules = customRules || [];
+          let results = await validateYaml(content, rules);
+          // Also run schema-based validation and merge results
+          let schemaResults = [];
+          let schemaDiagnostic = '';
+          let schemaErrorSection = '';
+          if (typeof validateSchemaYaml === 'function') {
+            const csData = await new Promise((resolve) => chrome.storage.local.get('clusterSchema', (d) => resolve(d && d.clusterSchema ? d.clusterSchema : { openapis: [], crds: [] })));
+            schemaResults = await validateSchemaYaml(content, csData);
+            if (Array.isArray(schemaResults) && schemaResults.length) {
+              const existingKeys = new Set(results.map(r => `${r.ruleId}||${r.path}||${r.message}`));
+              for (const sr of schemaResults) {
+                const key = `${sr.ruleId}||${sr.path}||${sr.message}`;
+                if (!existingKeys.has(key)) {
+                  results.push(sr);
+                  existingKeys.add(key);
+                }
+              }
+            }
+            if (schemaResults.length === 0) {
+              if (csData && csData.openapis && Object.keys(csData.openapis).length > 0) {
+                schemaDiagnostic = 'Schema present, but no matching schema found for this resource. Check apiVersion/kind and schema keys.';
+              } else {
+                schemaDiagnostic = 'No schema present for this resource.';
+              }
+            } else {
+              const errorCount = schemaResults.filter(r => r.severity === 'error').length;
+              schemaDiagnostic = `Schema-based validation: ${schemaResults.length} issue(s), ${errorCount} error(s).`;
+              schemaDiagnostic += '\n' + schemaResults.slice(0,3).map(r => `${r.path}: ${r.message}`).join('\n');
+              schemaErrorSection = schemaResults.filter(r => r.severity === 'error').map(r => `<li><b>${r.path}</b>: ${r.message}</li>`).join('');
+            }
+          } else {
+            schemaDiagnostic = 'Schema validator not available.';
+          }
+          // Show diagnostic in UI
+          let diagEl = document.getElementById('schemaDiagnostic');
+          if (!diagEl) {
+            diagEl = document.createElement('div');
+            diagEl.id = 'schemaDiagnostic';
+            diagEl.style.cssText = 'margin:8px 0;padding:8px;border:1px solid #eee;background:#f9f9f9;font-size:12px;white-space:pre-wrap;';
+            summary.parentNode.insertBefore(diagEl, summary.nextSibling);
+          }
+          diagEl.textContent = schemaDiagnostic;
+          let errEl = document.getElementById('schemaErrorSection');
+          if (!errEl) {
+            errEl = document.createElement('ul');
+            errEl.id = 'schemaErrorSection';
+            errEl.style.cssText = 'margin:8px 0;padding:8px;border:1px solid #fbb;background:#fff0f0;font-size:13px;';
+            diagEl.parentNode.insertBefore(errEl, diagEl.nextSibling);
+          }
+          errEl.innerHTML = schemaErrorSection;
           renderResults(results);
         } catch (err) {
           console.error('Manual validation failed', err);
@@ -233,8 +205,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       };
     }
-    return;
   }
+  // ...existing code for GitHub/GitLab YAML extraction and validation...
 
   // If we fetched the YAML from GitHub, show a notice and hide manual controls
   if (fetchedFromGithub) {
@@ -270,6 +242,65 @@ document.addEventListener("DOMContentLoaded", async () => {
   let results = [];
   try {
     results = await validateYaml(yamlText, rules);
+    // Also run schema-based validation (CRD/OpenAPI) if available and merge results
+    let schemaResults = [];
+    let schemaDiagnostic = '';
+    let schemaErrorSection = '';
+    try {
+      if (typeof validateSchemaYaml === 'function') {
+        const csData = await new Promise((resolve) => chrome.storage.local.get('clusterSchema', (d) => resolve(d && d.clusterSchema ? d.clusterSchema : { openapis: [], crds: [] })));
+        schemaResults = await validateSchemaYaml(yamlText, csData);
+        if (Array.isArray(schemaResults) && schemaResults.length) {
+          // Merge schemaResults; avoid duplicating identical messages
+          const existingKeys = new Set(results.map(r => `${r.ruleId}||${r.path}||${r.message}`));
+          for (const sr of schemaResults) {
+            const key = `${sr.ruleId}||${sr.path}||${sr.message}`;
+            if (!existingKeys.has(key)) {
+              results.push(sr);
+              existingKeys.add(key);
+            }
+          }
+        }
+        // Diagnostic: show what schema was matched and summary of results
+        if (schemaResults.length === 0) {
+          if (csData && csData.openapis && Object.keys(csData.openapis).length > 0) {
+            schemaDiagnostic = 'Schema present, but no matching schema found for this resource. Check apiVersion/kind and schema keys.';
+          } else {
+            schemaDiagnostic = 'No schema present for this resource.';
+          }
+        } else {
+          const errorCount = schemaResults.filter(r => r.severity === 'error').length;
+          schemaDiagnostic = `Schema-based validation: ${schemaResults.length} issue(s), ${errorCount} error(s).`;
+          // Show first few errors
+          schemaDiagnostic += '\n' + schemaResults.slice(0,3).map(r => `${r.path}: ${r.message}`).join('\n');
+          // Show all schema errors in a dedicated section
+          schemaErrorSection = schemaResults.filter(r => r.severity === 'error').map(r => `<li><b>${r.path}</b>: ${r.message}</li>`).join('');
+        }
+      } else {
+        schemaDiagnostic = 'Schema validator not available.';
+      }
+    } catch (e) {
+      schemaDiagnostic = 'Schema validation error: ' + (e && e.message);
+      console.debug('Schema validation in popup failed', e && e.message);
+    }
+    // Show diagnostic in UI
+    let diagEl = document.getElementById('schemaDiagnostic');
+    if (!diagEl) {
+      diagEl = document.createElement('div');
+      diagEl.id = 'schemaDiagnostic';
+      diagEl.style.cssText = 'margin:8px 0;padding:8px;border:1px solid #eee;background:#f9f9f9;font-size:12px;white-space:pre-wrap;';
+      summary.parentNode.insertBefore(diagEl, summary.nextSibling);
+    }
+    diagEl.textContent = schemaDiagnostic;
+    // Show schema errors in a visible section if any
+    let errEl = document.getElementById('schemaErrorSection');
+    if (!errEl) {
+      errEl = document.createElement('ul');
+      errEl.id = 'schemaErrorSection';
+      errEl.style.cssText = 'margin:8px 0;padding:8px;border:1px solid #fbb;background:#fff0f0;font-size:13px;';
+      diagEl.parentNode.insertBefore(errEl, diagEl.nextSibling);
+    }
+    errEl.innerHTML = schemaErrorSection;
     // If parser produced a parse-error result, show the sanitized YAML text
     // that was passed to the parser so users can inspect what we validated.
     if (results && results.some(r => r.ruleId === 'parse-error')) {

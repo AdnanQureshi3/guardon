@@ -5,14 +5,20 @@
   "description": "Guardon validates Kubernetes YAML files in GitHub/GitLab against configurable Guardon checks.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
-    "https://raw.githubusercontent.com/*",
     "https://github.com/*",
-    "https://api.github.com/*"
+    "https://www.github.com/*",
+    "https://gitlab.com/*",
+    "https://www.gitlab.com/*"
   ],
   "background": { "service_worker": "src/background.js" },
   "content_scripts": [
     {
-      "matches": ["https://github.com/*", "https://gitlab.com/*"],
+      "matches": [
+        "https://github.com/*",
+        "https://www.github.com/*",
+        "https://gitlab.com/*",
+        "https://www.gitlab.com/*"
+      ],
       "js": ["src/lib/js-yaml.min.js", "src/content.js"],
       "type": "module"
     }

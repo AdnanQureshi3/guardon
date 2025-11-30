@@ -5,63 +5,93 @@
 
 // helper to detect YAML/selection/text on the page (sanitizes common injected elements)
 function getPageYamlText() {
-  const selectors = [
-    ".blob-code-inner",
-    ".js-file-line",
-    ".highlight pre",
-    "pre",
-    "code",
-    ".markdown-body pre",
-    ".file .line",
-    ".blob-code"
-  ];
-
-  // If user has selected text on the page, prefer that
+  // Prefer user selection if present
   const selection = (window.getSelection && window.getSelection().toString && window.getSelection().toString()) || '';
   if (selection && /apiVersion:|kind:|metadata:/i.test(selection)) return selection;
 
-  // Gather text from multiple selectors
-  let blocks = [];
-  for (const sel of selectors) {
-    const found = document.querySelectorAll(sel);
-    if (found && found.length) {
-      blocks = Array.from(found);
-      break;
-    }
+  // GitHub code view: extract all lines from .blob-code-inner and .js-file-line
+  let codeLines = [];
+  const blobLines = document.querySelectorAll('.blob-code-inner, .js-file-line');
+  if (blobLines && blobLines.length) {
+    codeLines = Array.from(blobLines).map(b => b.textContent || '');
   }
 
-  // If nothing matched, try to use the page body as a fallback for raw views
   let yamlText = '';
-  if (blocks.length) {
-    yamlText = Array.from(blocks).map(b => {
-      if (!b) return '';
-      try {
-        const clone = b.cloneNode(true);
-  const banner = clone.querySelector('#guardon-banner');
-  if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
-        return clone.textContent || '';
-      } catch (e) {
-        return b.textContent || '';
+  if (codeLines.length) {
+    // Only extract YAML block from code lines
+    let start = codeLines.findIndex(l => /apiVersion:/.test(l));
+    let end = codeLines.length - 1;
+    // Find end: next apiVersion: or first blank line after start
+    for (let i = start + 1; i < codeLines.length; i++) {
+      if (/^apiVersion:/.test(codeLines[i]) || codeLines[i].trim() === '') {
+        end = i - 1;
+        break;
       }
-    }).join('\n');
+    }
+    if (start !== -1 && end >= start) {
+      let lines = codeLines.slice(start, end + 1);
+      // Remove trailing blank lines and spaces after last YAML line
+      while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+        lines.pop();
+      }
+      yamlText = lines.join('\n');
+    }
   } else {
-    const urlHint = /\.ya?ml($|\?|#)|\/raw\/|\/blob\//i.test(location.href);
-    if (urlHint) yamlText = document.body ? document.body.innerText : '';
-  }
-
-  // If using body fallback, remove common injected elements before reading text
-  if (yamlText && (!blocks.length) && document.body) {
-    try {
-      const bodyClone = document.body.cloneNode(true);
-      const scripts = bodyClone.querySelectorAll('script, template, noscript');
-      scripts.forEach(s => s.parentNode && s.parentNode.removeChild(s));
-      const jsonEls = bodyClone.querySelectorAll('[type="application/json"], [type="application/ld+json"]');
-      jsonEls.forEach(e => e.parentNode && e.parentNode.removeChild(e));
-      const uiEls = bodyClone.querySelectorAll('.js-repo-meta-container, #repository-container-header, .site-footer');
-      uiEls.forEach(e => e.parentNode && e.parentNode.removeChild(e));
-      yamlText = bodyClone.innerText || '';
-    } catch (e) {
-      // ignore and keep original yamlText
+    // Fallback: try pre/code/raw view
+    const selectors = [
+      ".highlight pre",
+      "pre",
+      "code",
+      ".markdown-body pre",
+      ".file .line",
+      ".blob-code"
+    ];
+    let blocks = [];
+    for (const sel of selectors) {
+      const found = document.querySelectorAll(sel);
+      if (found && found.length) {
+        blocks = Array.from(found);
+        break;
+      }
+    }
+    if (blocks.length) {
+      let lines = Array.from(blocks).map(b => b.textContent || '');
+      let start = lines.findIndex(l => /apiVersion:/.test(l));
+      let end = lines.length - 1;
+      for (let i = start + 1; i < lines.length; i++) {
+        if (/^apiVersion:/.test(lines[i]) || lines[i].trim() === '') {
+          end = i - 1;
+          break;
+        }
+      }
+      if (start !== -1 && end >= start) {
+        lines = lines.slice(start, end + 1);
+        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+          lines.pop();
+        }
+        yamlText = lines.join('\n');
+      }
+    } else {
+      // Fallback: use body for raw views
+      const urlHint = /\.ya?ml($|\?|#)|\/raw\/|\/blob\//i.test(location.href);
+      if (urlHint && document.body) {
+        let lines = (document.body.innerText || '').split('\n');
+        let start = lines.findIndex(l => /apiVersion:/.test(l));
+        let end = lines.length - 1;
+        for (let i = start + 1; i < lines.length; i++) {
+          if (/^apiVersion:/.test(lines[i]) || lines[i].trim() === '') {
+            end = i - 1;
+            break;
+          }
+        }
+        if (start !== -1 && end >= start) {
+          lines = lines.slice(start, end + 1);
+          while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+            lines.pop();
+          }
+          yamlText = lines.join('\n');
+        }
+      }
     }
   }
 

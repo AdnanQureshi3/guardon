@@ -1,4 +1,5 @@
 import { showKyvernoPreview as kpShow, hideKyvernoPreview as kpHide, escapeHtml as kpEscapeHtml } from './kyvernoPreview.js';
+import { parseSchemaText, summarizeSchema } from '../utils/clusterSchema.js';
 
 let rules = [];
 let editingIndex = null;
@@ -687,3 +688,337 @@ if (exportRulesBtn) exportRulesBtn.onclick = async () => {
     // clipboard may be unavailable in some contexts; ignore silently
   }
 };
+
+// ============ OPENAPI SCHEMA HANDLERS ============
+const openAPIFileEl = document.getElementById('openAPIFile');
+const openAPITextarea = document.getElementById('openAPITextarea');
+const openAPILoadBtn = document.getElementById('openAPILoad');
+const openAPIPreviewBtn = document.getElementById('openAPIPreview');
+const openAPIClearBtn = document.getElementById('openAPIClear');
+const openAPIStatus = document.getElementById('openAPIStatus');
+let lastOpenAPIFileName = null;
+
+function showOpenAPIStatus(msg) {
+  if (openAPIStatus) openAPIStatus.textContent = msg;
+}
+
+function refreshOpenAPIDisplay() {
+  try {
+    chrome.storage.local.get('clusterSchema', (data) => {
+      const cs = data && data.clusterSchema;
+      const openAPIDisplay = document.getElementById('openAPIDisplay');
+      
+      if (!cs || !Array.isArray(cs.openapis) || cs.openapis.length === 0) {
+        console.debug('[refreshOpenAPIDisplay] hiding - no openapis');
+        if (openAPIDisplay) openAPIDisplay.style.display = 'none';
+        return;
+      }
+      
+      console.debug('[refreshOpenAPIDisplay] showing openapis:', cs.openapis.length);
+      if (openAPIDisplay) openAPIDisplay.style.display = 'block';
+      
+      document.getElementById('openAPICount').textContent = cs.openapis.length;
+      
+      const tableBody = document.getElementById('openAPITableBody');
+      if (tableBody) {
+        tableBody.innerHTML = '';
+        cs.openapis.forEach((rec) => {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid #bfdbfe';
+          
+          const oas = rec && rec.spec ? rec.spec : rec;
+          const meta = rec && rec.meta ? rec.meta : {};
+          const title = (oas && oas.info && oas.info.title) || 'OpenAPI Spec';
+          const apiVersion = (oas && oas.info && oas.info.version) || '(unknown)';
+          const version = (oas && (oas.openapi || oas.swagger)) || '(unknown)';
+          const paths = (oas && oas.paths && Object.keys(oas.paths).length) || 0;
+          const components = (oas && oas.components && Object.keys(oas.components).length) || 0;
+          const source = meta.source || '(unknown)';
+          const loadedAt = meta.loadedAt ? new Date(meta.loadedAt).toLocaleString() : '(unknown)';
+          
+          [title, apiVersion, version, paths.toString(), components.toString(), source, loadedAt].forEach((text, idx) => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            td.style.padding = '6px';
+            // avoid right border on last column
+            td.style.borderRight = idx < 6 ? '1px solid #bfdbfe' : 'none';
+            tr.appendChild(td);
+          });
+          
+          tableBody.appendChild(tr);
+        });
+      }
+    });
+  } catch (e) { console.error('refreshOpenAPIDisplay error:', e); }
+}
+
+if (openAPIFileEl) openAPIFileEl.addEventListener('change', (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (openAPITextarea) openAPITextarea.value = String(reader.result || '');
+    showToast('Loaded OpenAPI file', { background: '#0ea5e9' });
+    // remember filename to attribute source on save
+    lastOpenAPIFileName = f.name || null;
+  };
+  reader.onerror = () => showToast('Failed to read file', { background: '#b91c1c' });
+  reader.readAsText(f);
+});
+
+if (openAPILoadBtn) openAPILoadBtn.addEventListener('click', async () => {
+  const text = openAPITextarea ? openAPITextarea.value : '';
+  if (!text || !String(text).trim()) {
+    showToast('Paste or load an OpenAPI file first', { background: '#b91c1c' });
+    return;
+  }
+
+  const parsed = await parseSchemaText(text);
+  if (parsed.errors && parsed.errors.length) {
+    showToast('Failed to parse OpenAPI: ' + parsed.errors.join('; '), { background: '#b91c1c' });
+    return;
+  }
+
+  // Extract all OpenAPI schemas from the parsed documents
+  const openapis = [];
+  if (parsed.openapi) openapis.push(parsed.openapi);
+  parsed.docs.forEach((doc) => {
+    if (doc && typeof doc === 'object' && (doc.openapi || doc.swagger || doc.paths)) {
+      openapis.push(doc);
+    }
+  });
+
+  if (openapis.length === 0) {
+    showToast('No OpenAPI specification found. Is this a valid OpenAPI document?', { background: '#ea580c' });
+    return;
+  }
+
+  try {
+    chrome.storage.local.get('clusterSchema', (data) => {
+      const current = data && data.clusterSchema ? { ...data.clusterSchema } : { openapis: [], crds: [] };
+      // Wrap new OpenAPI specs with metadata and normalize existing entries
+      const newWrapped = openapis.map((oas) => ({ spec: oas, meta: { loadedAt: new Date().toISOString(), source: lastOpenAPIFileName || 'paste' } }));
+      let existing = [];
+      if (Array.isArray(current.openapis)) {
+        existing = current.openapis.map((e) => (e && e.spec ? e : { spec: e, meta: { loadedAt: null, source: 'existing' } }));
+      }
+      current.openapis = existing.concat(newWrapped);
+      // clear remembered filename after storing
+      lastOpenAPIFileName = null;
+
+      chrome.storage.local.set({ clusterSchema: current }, () => {
+        showToast(`OpenAPI saved: ${newWrapped.length} schema(s) added`, { background: '#059669' });
+        showOpenAPIStatus(`Loaded: ${current.openapis.length} total OpenAPI schema(s)`);
+        refreshOpenAPIDisplay();
+      });
+    });
+  } catch (e) {
+    console.error('save openapi failed', e);
+    showToast('Failed to save OpenAPI', { background: '#b91c1c' });
+  }
+});
+
+if (openAPIPreviewBtn) openAPIPreviewBtn.addEventListener('click', async () => {
+  const text = openAPITextarea ? openAPITextarea.value : '';
+  if (!text || !String(text).trim()) {
+    showToast('Paste or load an OpenAPI file first', { background: '#b91c1c' });
+    return;
+  }
+  const parsed = await parseSchemaText(text);
+  if (parsed.errors && parsed.errors.length) {
+    showToast('Failed to parse: ' + parsed.errors.join('; '), { background: '#b91c1c' });
+    return;
+  }
+  
+  const openapis = [];
+  if (parsed.openapi) openapis.push(parsed.openapi);
+  parsed.docs.forEach((doc) => {
+    if (doc && typeof doc === 'object' && (doc.openapi || doc.swagger || doc.paths)) {
+      openapis.push(doc);
+    }
+  });
+  
+  if (openapis.length === 0) {
+    showToast('No OpenAPI found in document', { background: '#ea580c' });
+    return;
+  }
+  
+  showToast(`Found ${openapis.length} OpenAPI schema(s)`, { background: '#0ea5e9', duration: 4000 });
+});
+
+if (openAPIClearBtn) openAPIClearBtn.addEventListener('click', () => {
+  try {
+    chrome.storage.local.get('clusterSchema', (data) => {
+      const current = data && data.clusterSchema ? { ...data.clusterSchema } : { openapis: [], crds: [] };
+      current.openapis = [];
+      chrome.storage.local.set({ clusterSchema: current }, () => {
+        showToast('OpenAPI schemas cleared', { background: '#6b7280' });
+        showOpenAPIStatus('');
+        const openAPIDisplay = document.getElementById('openAPIDisplay');
+        if (openAPIDisplay) openAPIDisplay.style.display = 'none';
+      });
+    });
+  } catch (e) {
+    showToast('Failed to clear OpenAPI', { background: '#b91c1c' });
+  }
+});
+
+// ============ CRD SCHEMA HANDLERS ============
+const crdFileEl = document.getElementById('crdFile');
+const crdTextarea = document.getElementById('crdTextarea');
+const crdLoadBtn = document.getElementById('crdLoad');
+const crdPreviewBtn = document.getElementById('crdPreview');
+const crdClearBtn = document.getElementById('crdClear');
+const crdStatus = document.getElementById('crdStatus');
+
+function showCRDStatus(msg) {
+  if (crdStatus) crdStatus.textContent = msg;
+}
+
+function refreshCRDDisplay() {
+  try {
+    chrome.storage.local.get('clusterSchema', (data) => {
+      const cs = data && data.clusterSchema;
+      const crdDisplay = document.getElementById('crdDisplay');
+      
+      if (!cs || !Array.isArray(cs.crds) || cs.crds.length === 0) {
+        console.debug('[refreshCRDDisplay] hiding - no crds');
+        if (crdDisplay) crdDisplay.style.display = 'none';
+        return;
+      }
+      
+      console.debug('[refreshCRDDisplay] showing crds:', cs.crds.length);
+      if (crdDisplay) crdDisplay.style.display = 'block';
+      
+      document.getElementById('crdCount').textContent = cs.crds.length;
+      
+      const tableBody = document.getElementById('crdTableBody');
+      if (tableBody) {
+        tableBody.innerHTML = '';
+        cs.crds.forEach((crd) => {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid #dcfce7';
+          
+          const name = (crd.metadata && crd.metadata.name) || '—';
+          const group = (crd.spec && crd.spec.group) || '—';
+          const scope = (crd.spec && crd.spec.scope) || '—';
+          const plural = (crd.spec && crd.spec.names && crd.spec.names.plural) || '—';
+          const singular = (crd.spec && crd.spec.names && crd.spec.names.singular) || '—';
+          
+          [name, group, scope, plural, singular].forEach((text) => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            td.style.padding = '6px';
+            td.style.borderRight = '1px solid #dcfce7';
+            tr.appendChild(td);
+          });
+          
+          tableBody.appendChild(tr);
+        });
+      }
+    });
+  } catch (e) { console.error('refreshCRDDisplay error:', e); }
+}
+
+if (crdFileEl) crdFileEl.addEventListener('change', (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (crdTextarea) crdTextarea.value = String(reader.result || '');
+    showToast('Loaded CRD file', { background: '#0ea5e9' });
+  };
+  reader.onerror = () => showToast('Failed to read file', { background: '#b91c1c' });
+  reader.readAsText(f);
+});
+
+if (crdLoadBtn) crdLoadBtn.addEventListener('click', async () => {
+  const text = crdTextarea ? crdTextarea.value : '';
+  if (!text || !String(text).trim()) {
+    showToast('Paste or load CRD file first', { background: '#b91c1c' });
+    return;
+  }
+
+  const parsed = await parseSchemaText(text);
+  if (parsed.errors && parsed.errors.length) {
+    showToast('Failed to parse CRDs: ' + parsed.errors.join('; '), { background: '#b91c1c' });
+    return;
+  }
+
+  if (!Array.isArray(parsed.crds) || parsed.crds.length === 0) {
+    showToast('No CRDs found. Is this a valid CRD YAML?', { background: '#ea580c' });
+    return;
+  }
+
+  try {
+    chrome.storage.local.get('clusterSchema', (data) => {
+      const current = data && data.clusterSchema ? { ...data.clusterSchema } : { openapis: [], crds: [] };
+      current.crds = parsed.crds;
+      
+      chrome.storage.local.set({ clusterSchema: current }, () => {
+        showToast(`CRDs saved: ${parsed.crds.length} CRD(s)`, { background: '#059669' });
+        showCRDStatus(`Loaded: ${parsed.crds.length} CRD(s)`);
+        refreshCRDDisplay();
+      });
+    });
+  } catch (e) {
+    console.error('save crds failed', e);
+    showToast('Failed to save CRDs', { background: '#b91c1c' });
+  }
+});
+
+if (crdPreviewBtn) crdPreviewBtn.addEventListener('click', async () => {
+  const text = crdTextarea ? crdTextarea.value : '';
+  if (!text || !String(text).trim()) {
+    showToast('Paste or load CRD file first', { background: '#b91c1c' });
+    return;
+  }
+  const parsed = await parseSchemaText(text);
+  if (parsed.errors && parsed.errors.length) {
+    showToast('Failed to parse: ' + parsed.errors.join('; '), { background: '#b91c1c' });
+    return;
+  }
+  const count = Array.isArray(parsed.crds) ? parsed.crds.length : 0;
+  if (count === 0) {
+    showToast('No CRDs found in document', { background: '#ea580c' });
+    return;
+  }
+  showToast(`Found ${count} CRD(s)`, { background: '#0ea5e9', duration: 4000 });
+});
+
+if (crdClearBtn) crdClearBtn.addEventListener('click', () => {
+  try {
+    chrome.storage.local.get('clusterSchema', (data) => {
+      const current = data && data.clusterSchema ? { ...data.clusterSchema } : { openapis: [], crds: [] };
+      current.crds = [];
+      chrome.storage.local.set({ clusterSchema: current }, () => {
+        showToast('CRDs cleared', { background: '#6b7280' });
+        showCRDStatus('');
+        const crdDisplay = document.getElementById('crdDisplay');
+        if (crdDisplay) crdDisplay.style.display = 'none';
+      });
+    });
+  } catch (e) {
+    showToast('Failed to clear CRDs', { background: '#b91c1c' });
+  }
+});
+
+// Load stored schema on startup to reflect status
+try {
+  chrome.storage.local.get('clusterSchema', (data) => {
+    const cs = data && data.clusterSchema;
+    if (!cs) return;
+    
+    if (Array.isArray(cs.openapis) && cs.openapis.length > 0) {
+      showOpenAPIStatus(`Loaded: ${cs.openapis.length} OpenAPI schema(s)`);
+      refreshOpenAPIDisplay();
+    }
+    
+    if (Array.isArray(cs.crds) && cs.crds.length > 0) {
+      showCRDStatus(`Loaded: ${cs.crds.length} CRD(s)`);
+      refreshCRDDisplay();
+    }
+  });
+} catch (e) { /* ignore */ }
+
+// Resource validation is performed by the extension runtime (popup/content script).

@@ -5,7 +5,7 @@ let rules = [];
 let editingIndex = null;
 
 const tableBody = document.getElementById("rulesBody");
-const form = document.getElementById("form");
+const ruleEditModal = document.getElementById("ruleEditModal");
 const formTitle = document.getElementById("formTitle");
 
 const inputs = {
@@ -118,18 +118,16 @@ function escapeHtml(s) { return kpEscapeHtml(s); }
 window.editRule = function (idx) {
   editingIndex = idx;
   const r = rules[idx];
-  form.style.display = "block";
+  ruleEditModal.style.display = "flex";
   formTitle.textContent = "Edit Rule";
   inputs.id.value = r.id;
   inputs.desc.value = r.description;
   inputs.kind.value = r.kind || '';
   inputs.match.value = r.match;
   inputs.pattern.value = r.pattern || "";
-  // r.required may be boolean; convert to string 'true'/'false' for the select
   inputs.required.value = (r.required === true || r.required === 'true') ? 'true' : 'false';
   inputs.severity.value = r.severity;
   inputs.message.value = r.message;
-  // enabled may be undefined (legacy) -> treat as true
   if (inputs.enabled) inputs.enabled.checked = (r.enabled === undefined) ? true : !!r.enabled;
   if (inputs.fix) {
     try {
@@ -234,12 +232,13 @@ if (addRuleBtn) addRuleBtn.onclick = () => {
   Object.values(inputs).forEach(i => i.value = "");
   if (inputs.required) inputs.required.value = "false";
   if (inputs.severity) inputs.severity.value = "warning";
-  if (form) form.style.display = "block";
+  ruleEditModal.style.display = "flex";
+  if (inputs.enabled) inputs.enabled.checked = true;
 };
 
 const cancelRuleBtn = document.getElementById("cancelRule");
 if (cancelRuleBtn) cancelRuleBtn.onclick = () => {
-  if (form) form.style.display = "none";
+  ruleEditModal.style.display = "none";
 };
 
 const saveRuleBtn = document.getElementById("saveRule");
@@ -319,7 +318,7 @@ if (saveRuleBtn) saveRuleBtn.onclick = () => {
   else rules.push(newRule);
 
   saveRules();
-  if (form) form.style.display = 'none';
+  ruleEditModal.style.display = 'none';
   renderTable();
   showToast(editingIndex !== null ? 'Rule updated' : 'Rule added', { background: '#059669' });
 };

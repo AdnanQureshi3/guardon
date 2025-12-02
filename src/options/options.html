@@ -162,37 +162,42 @@
     <tbody id="rulesBody"></tbody>
   </table>
 
-  <div id="form" style="display:none;margin-top:20px;background:#fff;padding:15px;border-radius:6px;border:1px solid #ddd;">
-    <h3 id="formTitle">Add Rule</h3>
-    <label>ID:</label><input id="ruleId">
-    <label>Description:</label><input id="ruleDesc">
-    <label>YAML Path (match):</label><input id="ruleMatch">
-    <label>Pattern (RegEx):</label><input id="rulePattern">
-    <label>Kind (comma-separated):</label><input id="ruleKind" placeholder="e.g. Deployment,StatefulSet">
-  <small id="ruleKindHelp" style="color:#666;display:block;margin-bottom:8px;font-size:12px;">Comma-separated (e.g. Deployment, StatefulSet) — case-insensitive.</small>
-    <label>Required:</label>
-    <select id="ruleRequired">
-      <option value="false">false</option>
-      <option value="true">true</option>
-    </select>
-    <label>Severity:</label>
-    <select id="ruleSeverity">
-      <option value="info">info</option>
-      <option value="warning">warning</option>
-      <option value="error">error</option>
-    </select>
-    <label>Message:</label><input id="ruleMessage">
-  <label style="display:block;margin-top:8px">Enabled:</label>
-  <input id="ruleEnabled" type="checkbox" checked style="transform:scale(1.1);margin-bottom:8px;" />
-  <label style="display:block;margin-top:8px">Fix (optional JSON):</label>
-  <textarea id="ruleFix" rows="4" style="width:100%;font-family:monospace;margin-bottom:8px;" placeholder='Optional JSON describing the fix, e.g. {"action":"insert","value":{...},"hint":"..."}'></textarea>
-    <br>
-    <label style="display:block;margin-top:8px">Rationale (optional):</label>
-    <textarea id="ruleRationale" rows="3" style="width:100%;font-family:monospace;margin-bottom:8px;" placeholder="Explain why this rule exists, cite CIS/NIST/Kyverno or internal docs"></textarea>
-    <label style="display:block;margin-top:8px">References (optional):</label>
-    <input id="ruleReferences" type="text" style="width:100%;margin-bottom:8px;padding:6px;" placeholder="Comma-separated URLs, e.g. https://kyverno.io,https://www.cisecurity.org" />
-    <button id="saveRule">💾 Save</button>
-    <button id="cancelRule">✖ Cancel</button>
+
+  <!-- Rule Edit Modal Popup -->
+  <div id="ruleEditModal" class="modal-overlay">
+    <div class="delete-modal" style="max-width:500px;text-align:left;">
+      <h3 id="formTitle">Add Rule</h3>
+      <label>ID:</label><input id="ruleId">
+      <label>Description:</label><input id="ruleDesc">
+      <label>YAML Path (match):</label><input id="ruleMatch">
+      <label>Pattern (RegEx):</label><input id="rulePattern">
+      <label>Kind (comma-separated):</label><input id="ruleKind" placeholder="e.g. Deployment,StatefulSet">
+      <small id="ruleKindHelp" style="color:#666;display:block;margin-bottom:8px;font-size:12px;">Comma-separated (e.g. Deployment, StatefulSet) — case-insensitive.</small>
+      <label>Required:</label>
+      <select id="ruleRequired">
+        <option value="false">false</option>
+        <option value="true">true</option>
+      </select>
+      <label>Severity:</label>
+      <select id="ruleSeverity">
+        <option value="info">info</option>
+        <option value="warning">warning</option>
+        <option value="error">error</option>
+      </select>
+      <label>Message:</label><input id="ruleMessage">
+      <label style="display:block;margin-top:8px">Enabled:</label>
+      <input id="ruleEnabled" type="checkbox" checked style="transform:scale(1.1);margin-bottom:8px;" />
+      <label style="display:block;margin-top:8px">Fix (optional JSON):</label>
+      <textarea id="ruleFix" rows="4" style="width:100%;font-family:monospace;margin-bottom:8px;" placeholder='Optional JSON describing the fix, e.g. {"action":"insert","value":{...},"hint":"..."}'></textarea>
+      <label style="display:block;margin-top:8px">Rationale (optional):</label>
+      <textarea id="ruleRationale" rows="3" style="width:100%;font-family:monospace;margin-bottom:8px;" placeholder="Explain why this rule exists, cite CIS/NIST/Kyverno or internal docs"></textarea>
+      <label style="display:block;margin-top:8px">References (optional):</label>
+      <input id="ruleReferences" type="text" style="width:100%;margin-bottom:8px;padding:6px;" placeholder="Comma-separated URLs, e.g. https://kyverno.io,https://www.cisecurity.org" />
+      <div class="modal-buttons" style="margin-top:16px;">
+        <button id="saveRule">💾 Save</button>
+        <button id="cancelRule" class="btn-cancel">✖ Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- Cluster Schema Loader: Separate OpenAPI and CRD sections -->

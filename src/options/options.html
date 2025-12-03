@@ -300,12 +300,63 @@
     </div>
   </div>
 
-  <!-- Cluster Schema Loader: Separate OpenAPI and CRD sections -->
-  <div style="margin-top:30px;">
-    <!-- OpenAPI Schema Section -->
-    <div id="openAPISection" style="background:#fff;padding:12px;border:1px solid #e6e6e6;border-radius:6px;margin-bottom:12px;">
-      <h3 style="margin-top:0">🔷 Kubernetes API (OpenAPI)</h3>
-      <p style="margin:0 0 12px 0;font-size:13px;color:#666;">Load OpenAPI specifications (supports multiple schemas).</p>
+  <div style="margin-top:30px;display:flex;gap:12px;">
+    <button id="openAPIImport" title="Import Kubernetes API" aria-label="Import Kubernetes API">🔷 Import Kubernetes API</button>
+    <button id="crdImport" title="Import CRD" aria-label="Import CRD">🟩 Import CRD</button>
+    </div>
+
+    <!-- OpenAPI Details Display as Table (Main Window) -->
+    <div id="openAPIDisplay" style="display:none;margin-top:24px;padding:10px;background:#f0f8ff;border-left:3px solid #0ea5e9;border-radius:4px;">
+      <div style="font-weight:600;margin-bottom:8px;color:#1a1a1a;">✓ OpenAPI Schemas Loaded (<span id="openAPICount">0</span>)</div>
+      <div id="openAPITableWrapper" style="overflow-x:auto;margin-top:8px;">
+        <table id="openAPITable" style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f0f8ff;border-bottom:1px solid #bfdbfe;">
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Title</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Cluster</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Version</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">API Version</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">OpenAPI</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Paths</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Components</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Source</th>
+              <th style="padding:6px;text-align:left;">Loaded At</th>
+            </tr>
+          </thead>
+          <tbody id="openAPITableBody">
+            <!-- Rows populated by options.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CRD Details Display as Table (Main Window) -->
+    <div id="crdDisplay" style="display:none;margin-top:24px;padding:10px;background:#f0fff0;border-left:3px solid #22c55e;border-radius:4px;">
+      <div style="font-weight:600;margin-bottom:8px;color:#1a1a1a;">✓ CRDs Loaded (<span id="crdCount">0</span>)</div>
+      <div id="crdTableWrapper" style="overflow-x:auto;margin-top:8px;">
+        <table id="crdTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f0fff0;border-bottom:1px solid #dcfce7;">
+              <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Name</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Group</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Scope</th>
+              <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Plural</th>
+              <th style="padding:6px;text-align:left;">Singular</th>
+            </tr>
+          </thead>
+          <tbody id="crdTableBody">
+            <!-- Rows populated by options.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- OpenAPI Import Panel Modal Popup -->
+  <div id="openAPIPanelModal" class="modal-overlay">
+    <div class="delete-modal" style="max-width:600px;text-align:left;max-height:90vh;overflow-y:auto;position:relative;">
+      <button id="closeOpenAPIModal" title="Close" aria-label="Close" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;color:#888;cursor:pointer;">&times;</button>
+      <h3 style="margin-top:0">Import Kubernetes API (OpenAPI)</h3>
       <div style="margin-bottom:8px;">
         <input id="openAPIFile" type="file" accept="application/json,application/yaml,.json,.yml,.yaml" />
       </div>
@@ -323,37 +374,14 @@
         <button id="openAPIClear">Clear</button>
       </div>
       <div id="openAPIStatus" style="margin-top:10px;color:#444;font-size:13px;"></div>
-      
-      <!-- OpenAPI Details Display as Table -->
-      <div id="openAPIDisplay" style="display:none;margin-top:12px;padding:10px;background:#f0f8ff;border-left:3px solid #0ea5e9;border-radius:4px;">
-        <div style="font-weight:600;margin-bottom:8px;color:#1a1a1a;">✓ OpenAPI Schemas Loaded (<span id="openAPICount">0</span>)</div>
-        <div id="openAPITableWrapper" style="overflow-x:auto;margin-top:8px;">
-          <table id="openAPITable" style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead>
-              <tr style="background:#f0f8ff;border-bottom:1px solid #bfdbfe;">
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Title</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Cluster</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Version</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">API Version</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">OpenAPI</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Paths</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Components</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Source</th>
-                <th style="padding:6px;text-align:left;">Loaded At</th>
-              </tr>
-            </thead>
-            <tbody id="openAPITableBody">
-              <!-- Rows populated by options.js -->
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
+  </div>
 
-    <!-- CRD Schema Section -->
-    <div id="crdSection" style="background:#fff;padding:12px;border:1px solid #e6e6e6;border-radius:6px;">
-      <h3 style="margin-top:0">🟩 Custom Resources (CRDs)</h3>
-      <p style="margin:0 0 12px 0;font-size:13px;color:#666;">Load Custom Resource Definitions from your cluster.</p>
+  <!-- CRD Import Panel Modal Popup -->
+  <div id="crdPanelModal" class="modal-overlay">
+    <div class="delete-modal" style="max-width:600px;text-align:left;max-height:90vh;overflow-y:auto;position:relative;">
+      <button id="closeCRDModal" title="Close" aria-label="Close" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;color:#888;cursor:pointer;">&times;</button>
+      <h3 style="margin-top:0">Import Custom Resources (CRDs)</h3>
       <div style="margin-bottom:8px;">
         <input id="crdFile" type="file" accept="application/json,application/yaml,.json,.yml,.yaml" />
       </div>
@@ -365,27 +393,6 @@
         <button id="crdClear">Clear</button>
       </div>
       <div id="crdStatus" style="margin-top:10px;color:#444;font-size:13px;"></div>
-      
-      <!-- CRD Details Display -->
-      <div id="crdDisplay" style="display:none;margin-top:12px;padding:10px;background:#f0fff0;border-left:3px solid #22c55e;border-radius:4px;">
-        <div style="font-weight:600;margin-bottom:8px;color:#1a1a1a;">✓ CRDs Loaded (<span id="crdCount">0</span>)</div>
-        <div id="crdTableWrapper" style="overflow-x:auto;margin-top:8px;">
-          <table id="crdTable" style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead>
-              <tr style="background:#f0fff0;border-bottom:1px solid #dcfce7;">
-                <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Name</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Group</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Scope</th>
-                <th style="padding:6px;text-align:left;border-right:1px solid #dcfce7;">Plural</th>
-                <th style="padding:6px;text-align:left;">Singular</th>
-              </tr>
-            </thead>
-            <tbody id="crdTableBody">
-              <!-- Rows populated by options.js -->
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   </div>
 

@@ -213,6 +213,12 @@
       <div style="margin-bottom:8px;">
         <input id="openAPIFile" type="file" accept="application/json,application/yaml,.json,.yml,.yaml" />
       </div>
+      <div style="margin-bottom:8px;display:flex;gap:12px;align-items:center;">
+        <label for="openAPICluster" style="font-size:13px;color:#333;">Cluster:</label>
+        <input id="openAPICluster" type="text" placeholder="e.g. prod-cluster" style="padding:6px;" />
+        <label for="openAPIVersion" style="font-size:13px;color:#333;">Version:</label>
+        <input id="openAPIVersion" type="text" placeholder="e.g. 1.25" style="width:80px;padding:6px;" />
+      </div>
       <div style="margin-bottom:8px;">or paste OpenAPI schema(s):</div>
       <textarea id="openAPITextarea" rows="6" style="width:100%;font-family:monospace;margin-bottom:8px;" placeholder="Paste one or more OpenAPI v3 JSON or YAML here"></textarea>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -230,7 +236,9 @@
             <thead>
               <tr style="background:#f0f8ff;border-bottom:1px solid #bfdbfe;">
                 <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Title</th>
+                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Cluster</th>
                 <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Version</th>
+                <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">API Version</th>
                 <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">OpenAPI</th>
                 <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Paths</th>
                 <th style="padding:6px;text-align:left;border-right:1px solid #bfdbfe;">Components</th>

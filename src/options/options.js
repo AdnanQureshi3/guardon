@@ -730,26 +730,29 @@ function refreshOpenAPIDisplay() {
         cs.openapis.forEach((rec) => {
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid #bfdbfe';
-          
+
           const oas = rec && rec.spec ? rec.spec : rec;
           const meta = rec && rec.meta ? rec.meta : {};
           const title = (oas && oas.info && oas.info.title) || 'OpenAPI Spec';
+          const cluster = meta.cluster || '(none)';
+          const versionMeta = meta.version || '(none)';
           const apiVersion = (oas && oas.info && oas.info.version) || '(unknown)';
-          const version = (oas && (oas.openapi || oas.swagger)) || '(unknown)';
+          const openapiVersion = (oas && (oas.openapi || oas.swagger)) || '(unknown)';
           const paths = (oas && oas.paths && Object.keys(oas.paths).length) || 0;
           const components = (oas && oas.components && Object.keys(oas.components).length) || 0;
           const source = meta.source || '(unknown)';
           const loadedAt = meta.loadedAt ? new Date(meta.loadedAt).toLocaleString() : '(unknown)';
-          
-          [title, apiVersion, version, paths.toString(), components.toString(), source, loadedAt].forEach((text, idx) => {
+
+          // Order: Title, Cluster, Version, API Version, OpenAPI, Paths, Components, Source, Loaded At
+          [title, cluster, versionMeta, apiVersion, openapiVersion, paths.toString(), components.toString(), source, loadedAt].forEach((text, idx) => {
             const td = document.createElement('td');
             td.textContent = text;
             td.style.padding = '6px';
             // avoid right border on last column
-            td.style.borderRight = idx < 6 ? '1px solid #bfdbfe' : 'none';
+            td.style.borderRight = idx < 8 ? '1px solid #bfdbfe' : 'none';
             tr.appendChild(td);
           });
-          
+
           tableBody.appendChild(tr);
         });
       }
@@ -778,6 +781,9 @@ if (openAPILoadBtn) openAPILoadBtn.addEventListener('click', async () => {
     return;
   }
 
+  const cluster = document.getElementById('openAPICluster')?.value?.trim() || '';
+  const version = document.getElementById('openAPIVersion')?.value?.trim() || '';
+
   const parsed = await parseSchemaText(text);
   if (parsed.errors && parsed.errors.length) {
     showToast('Failed to parse OpenAPI: ' + parsed.errors.join('; '), { background: '#b91c1c' });
@@ -802,7 +808,15 @@ if (openAPILoadBtn) openAPILoadBtn.addEventListener('click', async () => {
     chrome.storage.local.get('clusterSchema', (data) => {
       const current = data && data.clusterSchema ? { ...data.clusterSchema } : { openapis: [], crds: [] };
       // Wrap new OpenAPI specs with metadata and normalize existing entries
-      const newWrapped = openapis.map((oas) => ({ spec: oas, meta: { loadedAt: new Date().toISOString(), source: lastOpenAPIFileName || 'paste' } }));
+      const newWrapped = openapis.map((oas) => ({
+        spec: oas,
+        meta: {
+          loadedAt: new Date().toISOString(),
+          source: lastOpenAPIFileName || 'paste',
+          cluster,
+          version
+        }
+      }));
       let existing = [];
       if (Array.isArray(current.openapis)) {
         existing = current.openapis.map((e) => (e && e.spec ? e : { spec: e, meta: { loadedAt: null, source: 'existing' } }));

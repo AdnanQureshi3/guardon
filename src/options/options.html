@@ -119,9 +119,9 @@
 <body>
   <h2>🧩 Guardon Rules</h2>
   <div>
-    <button id="addRule">➕ Add Rule</button>
-    <button id="importRules">📥 Import</button>
-    <button id="exportRules">📤 Export</button>
+    <button id="addRule" title="Add Rule" aria-label="Add Rule">➕</button>
+    <button id="importRules" title="Import Rules" aria-label="Import Rules">📥</button>
+    <button id="exportRules" title="Export Rules" aria-label="Export Rules">📤</button>
   </div>
   
   <!-- Import panel: allows file upload or paste JSON text -->
@@ -140,9 +140,9 @@
     <div style="margin-bottom:8px;">or paste JSON below:</div>
     <textarea id="importTextarea" rows="8" style="width:100%;font-family:monospace;margin-bottom:8px;" placeholder='Paste JSON here (array of rules or { "customRules": [...] })'></textarea>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button id="doImport">Import</button>
-      <button id="pasteClipboard">Paste from clipboard</button>
-      <button id="cancelImport">Cancel</button>
+      <button id="doImport" title="Import" aria-label="Import">📥</button>
+      <button id="pasteClipboard" title="Paste from clipboard" aria-label="Paste from clipboard">📋</button>
+      <button id="cancelImport" title="Cancel" aria-label="Cancel">✖</button>
     </div>
   </div>
 
@@ -194,8 +194,8 @@
       <label style="display:block;margin-top:8px">References (optional):</label>
       <input id="ruleReferences" type="text" style="width:100%;margin-bottom:8px;padding:6px;" placeholder="Comma-separated URLs, e.g. https://kyverno.io,https://www.cisecurity.org" />
       <div class="modal-buttons" style="margin-top:16px;">
-        <button id="saveRule">💾 Save</button>
-        <button id="cancelRule" class="btn-cancel">✖ Cancel</button>
+        <button id="saveRule" title="Save" aria-label="Save">💾</button>
+        <button id="cancelRule" class="btn-cancel" title="Cancel" aria-label="Cancel">✖</button>
       </div>
     </div>
   </div>

@@ -86,12 +86,16 @@ function renderTable() {
 
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
-    editBtn.textContent = '✏️ Edit';
+    editBtn.innerHTML = '✏️';
+    editBtn.title = 'Edit';
+    editBtn.setAttribute('aria-label', 'Edit');
     editBtn.addEventListener('click', () => editRule(idx));
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
-    delBtn.textContent = '🗑 Delete';
+    delBtn.innerHTML = '🗑';
+    delBtn.title = 'Delete';
+    delBtn.setAttribute('aria-label', 'Delete');
     delBtn.addEventListener('click', () => deleteRule(idx));
 
     tdActions.appendChild(editBtn);

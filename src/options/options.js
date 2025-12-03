@@ -783,6 +783,10 @@ if (openAPILoadBtn) openAPILoadBtn.addEventListener('click', async () => {
 
   const cluster = document.getElementById('openAPICluster')?.value?.trim() || '';
   const version = document.getElementById('openAPIVersion')?.value?.trim() || '';
+  if (!cluster || !version) {
+    showToast('Cluster and Version are required', { background: '#b91c1c' });
+    return;
+  }
 
   const parsed = await parseSchemaText(text);
   if (parsed.errors && parsed.errors.length) {
@@ -800,7 +804,7 @@ if (openAPILoadBtn) openAPILoadBtn.addEventListener('click', async () => {
   });
 
   if (openapis.length === 0) {
-    showToast('No OpenAPI specification found. Is this a valid OpenAPI document?', { background: '#ea580c' });
+    showToast('No OpenAPI specification found. Is this a valid OpenAPI document?', { background: '#fbbf24' });
     return;
   }
 
@@ -858,7 +862,7 @@ if (openAPIPreviewBtn) openAPIPreviewBtn.addEventListener('click', async () => {
   });
   
   if (openapis.length === 0) {
-    showToast('No OpenAPI found in document', { background: '#ea580c' });
+    showToast('No OpenAPI found in document', { background: '#fbbf24' });
     return;
   }
   
@@ -875,6 +879,7 @@ if (openAPIClearBtn) openAPIClearBtn.addEventListener('click', () => {
         showOpenAPIStatus('');
         const openAPIDisplay = document.getElementById('openAPIDisplay');
         if (openAPIDisplay) openAPIDisplay.style.display = 'none';
+        if (openAPITextarea) openAPITextarea.value = '';
       });
     });
   } catch (e) {
@@ -965,7 +970,7 @@ if (crdLoadBtn) crdLoadBtn.addEventListener('click', async () => {
   }
 
   if (!Array.isArray(parsed.crds) || parsed.crds.length === 0) {
-    showToast('No CRDs found. Is this a valid CRD YAML?', { background: '#ea580c' });
+    showToast('No CRDs found. Is this a valid CRD YAML?', { background: '#fbbf24' });
     return;
   }
 
@@ -999,7 +1004,7 @@ if (crdPreviewBtn) crdPreviewBtn.addEventListener('click', async () => {
   }
   const count = Array.isArray(parsed.crds) ? parsed.crds.length : 0;
   if (count === 0) {
-    showToast('No CRDs found in document', { background: '#ea580c' });
+    showToast('No CRDs found in document', { background: '#fbbf24' });
     return;
   }
   showToast(`Found ${count} CRD(s)`, { background: '#0ea5e9', duration: 4000 });
@@ -1015,6 +1020,7 @@ if (crdClearBtn) crdClearBtn.addEventListener('click', () => {
         showCRDStatus('');
         const crdDisplay = document.getElementById('crdDisplay');
         if (crdDisplay) crdDisplay.style.display = 'none';
+        if (crdTextarea) crdTextarea.value = '';
       });
     });
   } catch (e) {

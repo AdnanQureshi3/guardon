@@ -1,3 +1,7 @@
+const closeRuleModalBtn = document.getElementById('closeRuleModal');
+if (closeRuleModalBtn) closeRuleModalBtn.onclick = () => {
+  if (ruleEditModal) ruleEditModal.style.display = 'none';
+};
 import { showKyvernoPreview as kpShow, hideKyvernoPreview as kpHide, escapeHtml as kpEscapeHtml } from './kyvernoPreview.js';
 import { parseSchemaText, summarizeSchema } from '../utils/clusterSchema.js';
 

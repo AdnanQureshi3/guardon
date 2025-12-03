@@ -4,13 +4,108 @@
   <meta charset="UTF-8" />
   <title>Guardon – Rule Manager</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px; border: 1px solid #ddd; }
-    th { background-color: #eee; text-align: left; }
-    button { margin-right: 5px; padding: 5px 10px; }
-    #form { margin-top: 20px; background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #ddd; }
-    input, select { margin-bottom: 8px; width: 100%; padding: 6px; }
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: #f8fafc;
+      color: #222;
+      min-height: 100vh;
+    }
+    h2 {
+      color: #0a2540;
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 32px 0 18px 0;
+      letter-spacing: 1px;
+      padding-left: 8px;
+    }
+    .section-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      border: 1px solid #e5e7eb;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: none;
+    }
+    th {
+      background: #f1f5f9;
+      color: #0a2540;
+      text-align: left;
+      font-weight: 600;
+      font-size: 15px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    tr:nth-child(even) td {
+      background: #f6f8fa;
+    }
+    tr:hover td {
+      background: #e0e7ef;
+      transition: background 0.2s;
+    }
+    button {
+      margin-right: 5px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #f1f5f9;
+      color: #0a2540;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+      transition: background 0.2s, color 0.2s;
+    }
+    button:hover {
+      background: #e0e7ef;
+      color: #2563eb;
+    }
+    #form, .delete-modal, .modal-overlay > .delete-modal {
+      background: #fff;
+      padding: 18px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    input, select, textarea {
+      margin-bottom: 8px;
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      font-size: 15px;
+      background: #f6f8fa;
+      transition: border 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border: 1.5px solid #2563eb;
+      outline: none;
+      background: #e0e7ef;
+    }
+    label {
+      font-weight: 500;
+      color: #0a2540;
+      margin-bottom: 2px;
+      display: block;
+    }
+    .modal-overlay {
+      /* ...existing code... */
+    }
+    .delete-modal {
+      /* ...existing code... */
+    }
+    /* ...existing code for modals, buttons, etc... */
     
     /* Delete confirmation dialog styles */
     .modal-overlay {
@@ -169,8 +264,9 @@
 
   <!-- Rule Edit Modal Popup -->
   <div id="ruleEditModal" class="modal-overlay">
-    <div class="delete-modal" style="max-width:500px;text-align:left;">
-      <h3 id="formTitle">Add Rule</h3>
+    <div class="delete-modal" style="max-width:500px;text-align:left;max-height:90vh;overflow-y:auto;position:relative;">
+      <button id="closeRuleModal" title="Close" aria-label="Close" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;color:#888;cursor:pointer;">&times;</button>
+      <h3 id="formTitle" style="margin-right:32px;">Add Rule</h3>
       <label>ID:</label><input id="ruleId">
       <label>Description:</label><input id="ruleDesc">
       <label>YAML Path (match):</label><input id="ruleMatch">

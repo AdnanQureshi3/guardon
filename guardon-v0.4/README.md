@@ -26,94 +26,23 @@
 
 ## 🎯 Common Issues Guardon Catches
 
-
-
 ```yaml
 # ❌ Privileged containers
 securityContext:
   privileged: true  # Guardon flags this
 
-# ❌ Missing resource limits
+# ❌ Missing resource limits  
 containers:
-  - name: app
-    image: nginx
-    # Guardon suggests adding:
-    resources:
-      limits:
-        cpu: "500m"
-        memory: "256Mi"
+- name: app
+  image: nginx  # Guardon suggests adding limits
 
 # ❌ Latest tags in production
 containers:
-  - name: app
-    image: nginx:latest  # Guardon suggests using a versioned tag
-
-# ❌ Running as root user
-securityContext:
-  runAsUser: 0  # Guardon flags this and suggests a non-zero value
-
-# ❌ Missing CPU requests
-resources:
-  requests:
-    cpu: null  # Guardon suggests specifying a value like "100m"
+- name: app
+  image: nginx:latest  # Guardon suggests specific version
 ```
-
-Guardon checks for:
-- Use of `latest` image tags
-- Missing resource limits and requests
-- Privileged containers
-- Containers running as root
-- Pod security context not enforcing non-root
-- Other security and configuration best practices
 
 **💡 Pro tip:** Guardon shows you exactly what to fix and provides copy-paste ready solutions.
-
-## 4. System Architecture
-
-Guardon consists of four core modules:
-
-1. **Content Script**
-  - Injected into GitHub/GitLab pages
-  - Extracts Kubernetes YAML from PRs, files, and diffs
-  - Displays inline annotations and highlights violations
-
-2. **Validation Engine**
-  - Parses YAML and applies schema checks using js-yaml
-  - Evaluates rules from JSON and imported Kyverno policies
-  - Generates actionable fix suggestions for detected issues
-
-3. **Background Service Worker**
-  - Manages cross-tab communication and extension lifecycle
-  - Handles background tasks like rule bundle management and remote fetches
-  - Coordinates storage and sync of custom rules
-
-4. **Extension UI**
-  - Popup interface for instant YAML validation and fix previews
-  - Options page for rule import, export, and customization
-  - Integrated rule editor for creating and managing custom bundles
-
-### System Architecture Diagram
-
-```mermaid
-graph TD
-   A[Content Script] -- Extracts YAML, injects UI --> B[Extension UI]
-   B -- User actions, rule config --> C[Background Service Worker]
-   C -- Rule bundles, messaging --> D[Validation Engine]
-   D -- Validates YAML, applies rules --> B
-   C -- Syncs rules, fetches remote YAML --> D
-   A -- Inline annotations --> B
-```
-
-*If Mermaid diagrams are not supported, see the ASCII version below:*
-
-```
-  [Content Script]
-      |
-      v
-  [Extension UI] <--> [Background Service Worker] <--> [Validation Engine]
-      ^                                         |
-      |-----------------------------------------|
-```
 
 ## 👥 Who Uses Guardon
 
@@ -124,18 +53,16 @@ graph TD
 
 > *"Guardon caught a privileged container in our deployment that would have been a security incident. Saved us hours of debugging!"* — Platform Engineering Team
 
+## 🛠️ Features That Save Time
 
-## 🛡️ Key Features of Guardon
-
-- **Instant Kubernetes YAML validation** — Flags security misconfigurations as you browse GitHub/GitLab, no CI/CD required.
-- **Schema-aware checks** — Validates against uploaded Kubernetes OpenAPI/CRD schemas for required fields and type safety.
-- **Customizable rule engine** — Supports JSON-based rules and Kyverno policy import for organization-specific standards.
-- **Multi-document YAML support** — Handles complex manifests with multiple resources in one file.
-- **Actionable fix suggestions** — Provides copy-paste ready YAML patches for every violation.
-- **Dark mode UI** — Seamless experience for day and night workflows.
-- **Offline-first** — All validation runs locally in your browser; no network calls.
-- **Manual paste & validation** — Validate YAML even outside GitHub/GitLab by pasting directly in the popup.
-- **Enterprise-ready** — Import and manage custom rules, preview Kyverno policies, and enforce governance at scale.
+| Feature | Benefit |
+|---------|---------|
+| **Multi-document YAML parsing** | Handles complex manifests with multiple resources |
+| **Kyverno policy import** | Reuse your existing governance policies |  
+| **Smart fix suggestions** | Get patches you can copy-paste directly |
+| **Custom rule engine** | Add your organization's specific requirements |
+| **Dark mode support** | Easy on the eyes during late-night deployments |
+| **Offline-first** | No network calls, works anywhere |
 
 ## 🔧 Development Setup (2 minutes)
 

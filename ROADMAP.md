@@ -33,6 +33,9 @@ The roadmap items below reflect core capabilities and long-term goals for Guardo
 - CIS Benchmark Checks
   - Map and offer canned rule packs that correspond to CIS Kubernetes Benchmark controls to support compliance workflows.
 
+- **Test Coverage Commitment**
+  - All recent major changes to Guardon have included new and updated tests to ensure reliability, correctness, and maintainability. We encourage contributors to add tests for new features and bug fixes, and we review test coverage as part of our code review process.
+
 - VS Code Bridge
   - Package the validator as an NPM module and/or provide a VS Code extension that mirrors the same validation logic used in the browser popup.
 
@@ -44,6 +47,21 @@ The roadmap items below reflect core capabilities and long-term goals for Guardo
 
 - Open Data Schema
   - Publish an open JSON schema for guardrail rule definitions under a permissive license (CNCF-compatible) to encourage tooling and integrations.
+
+## 🚀 Differentiating Features
+
+Guardon stands out from other tools (like Checkov) by focusing on interactive, user-friendly, and context-aware features for Kubernetes YAML validation:
+
+- **Browser-Native Experience**: Real-time validation and feedback directly in GitHub/GitLab web UI. No CLI, no install—just a browser extension.
+- **Interactive Rule Management**: Users can add, edit, and organize rules visually. Import/export rule packs, support for community sharing.
+- **Live YAML Editing & Validation**: Validate YAML as users type or review PRs/issues. Inline suggestions, autofix, and guided remediation.
+- **Schema & API Awareness**: Import OpenAPI/CRD schemas for context-aware validation. Show API docs, field hints, and compliance mapping in the UI.
+- **Compliance Mapping & Badges**: Visual indicators for PSS, NSA/CISA, CIS, etc. Filter, report, and export compliance status per file/PR.
+- **User-Centric Storage**: Store rules, schemas, and results in browser, local files, or cloud. Privacy-first: no server-side processing unless user opts in.
+- **Collaboration Features**: Share rules and results with team members. Comment, annotate, and discuss findings in the UI.
+- **Extensible UI**: Widgets, dashboards, and custom views for different roles (dev, sec, ops).
+- **Education & Guidance**: Tooltips, links, and explanations for each rule. “Why is this important?” context for every finding.
+- **No-Code/Low-Code Policy Authoring**: Drag-and-drop or form-based rule creation for non-developers.
 
 Notes
 -----

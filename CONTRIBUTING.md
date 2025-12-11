@@ -117,6 +117,10 @@ Guardon is committed to addressing all warnings identified by ESLint and other c
 
 All pull requests are reviewed for warnings, and maintainers may request fixes or clarifications before merging.
 
+## Warning Strictness
+
+Guardon strives to enable the strictest practical warning flags in ESLint and other code quality tools. We regularly review and update our linting configuration to catch as many issues as possible early in development. Contributors are encouraged to propose stricter rules or additional checks if they help improve code quality and maintainability.
+
 ## 🏆 Pull Request Excellence
 
 **What makes a PR mergeable:**

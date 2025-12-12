@@ -1,3 +1,5 @@
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11599/badge)](https://www.bestpractices.dev/projects/11599)
+
 # 🛡️ Guardon — Catch Kubernetes Security Issues Before They Hit Production
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome&logoColor=white)](https://chrome.google.com/webstore)

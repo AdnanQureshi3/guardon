@@ -233,3 +233,13 @@ chmod +x ./scripts/build-dist.sh
 [⭐ Star this project](https://github.com/guardon-dev/guardon) • [🐛 Report a bug](https://github.com/guardon-dev/guardon/issues) • [💡 Request a feature](https://github.com/guardon-dev/guardon/discussions)
 
 </div>
+
+## 🏷️ Versioning and Release Identification
+
+Every release of Guardon includes a unique version identifier, visible in both the browser extension and the project files:
+
+- The extension version is set in `manifest.json` (e.g., `"version": "0.4"`).
+- The npm/package version is set in `package.json` (e.g., `"version": "0.1.0"`).
+- Each release and distribution is tagged with its version for traceability.
+
+Users and contributors can always find the current version in the extension details, `manifest.json`, and `package.json`.

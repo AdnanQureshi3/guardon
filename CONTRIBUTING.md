@@ -277,3 +277,19 @@ We're committed to a welcoming, inclusive community. Please read our [Code of Co
 4. **🛠️ Start coding** and make Kubernetes security better for everyone!
 
 **Questions?** Don't hesitate to ask — we're here to help you succeed! 🎯
+
+## Dynamic Analysis (Fuzzing & Runtime Testing)
+
+It is **suggested** that at least one dynamic analysis tool be applied to any proposed major production release of Guardon before its release. Dynamic analysis tools examine the software by executing it with specific or varying inputs to uncover issues that static analysis may miss.
+
+- Examples of dynamic analysis tools include fuzzers (e.g., American Fuzzy Lop, OSS-Fuzz) and web application scanners (e.g., OWASP ZAP, w3af).
+- Automated test suites with at least 80% branch coverage may also qualify as dynamic analysis if they vary inputs to exercise different code paths.
+- The project may request OSS-Fuzz or similar services to apply fuzz testing to Guardon.
+- Dynamic analysis tools may focus on security vulnerabilities, but this is not required.
+
+**Contributors:** If you are preparing a major production release, please:
+- Propose or run a dynamic analysis tool appropriate for the codebase (e.g., fuzzing, web scanning, or high-coverage automated tests).
+- Document the tool(s) used and summarize findings in the release notes or pull request.
+- Reference the [Wikipedia page on dynamic analysis](https://en.wikipedia.org/wiki/Dynamic_program_analysis) and [OWASP fuzzing guide](https://owasp.org/www-community/Fuzzing) for more information and tool options.
+
+This practice helps ensure Guardon is robust and secure for all users.

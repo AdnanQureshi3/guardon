@@ -1,10 +1,10 @@
-import { guardonRules } from './rules.js';
+import { guardonRules } from "./rules.js";
 
 // Use the bundled UMD `jsyaml` when running in the browser (popup loads
 // `src/lib/js-yaml.min.js` which exposes `globalThis.jsyaml`). If not
 // available, throw a clear error so callers know to include the library or
 // install the `js-yaml` package in a Node environment.
-const jsyaml = (typeof globalThis !== 'undefined' && globalThis.jsyaml)
+const jsyaml = (typeof globalThis !== "undefined" && globalThis.jsyaml)
   ? globalThis.jsyaml
   : null;
 
@@ -21,7 +21,7 @@ export function validateYaml(content) {
       violated: rule.validate(doc)
     }));
     return results.filter(r => r.violated);
-  } catch (e) {
+  } catch {
     return [{ error: "Invalid YAML format" }];
   }
 }

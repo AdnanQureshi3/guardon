@@ -1,4 +1,4 @@
-const { validateYamlAgainstClusterSchemas } = require('../src/utils/clusterSchema');
+const { validateYamlAgainstClusterSchemas } = require("../src/utils/clusterSchema");
 
 const deploymentYaml = `---
 apiVersion: apps/v1
@@ -28,27 +28,27 @@ const minimalOpenAPI = {
   components: {
     schemas: {
       Deployment: {
-        type: 'object',
+        type: "object",
         properties: {
           spec: {
-            type: 'object',
+            type: "object",
             properties: {
               template: {
-                type: 'object',
+                type: "object",
                 properties: {
                   spec: {
-                    type: 'object',
+                    type: "object",
                     properties: {
                       containers: {
-                        type: 'array',
+                        type: "array",
                         items: {
-                          type: 'object',
+                          type: "object",
                           properties: {
-                            name: { type: 'string' },
-                            image: { type: 'string' },
-                            command: { type: 'array' }
+                            name: { type: "string" },
+                            image: { type: "string" },
+                            command: { type: "array" }
                           },
-                          required: ['image']
+                          required: ["image"]
                         }
                       }
                     }
@@ -63,13 +63,13 @@ const minimalOpenAPI = {
   }
 };
 
-test('Deployment missing container image should be reported', async () => {
+test("Deployment missing container image should be reported", async () => {
   const clusterSchema = { openapis: [minimalOpenAPI] };
   const results = await validateYamlAgainstClusterSchemas(deploymentYaml, clusterSchema);
   // Expect at least one schema validation error pointing to containers[].image
-  const hasMissingImage = results.some(r => r.path && r.path.includes('containers') && r.path.includes('image'));
+  const hasMissingImage = results.some(r => r.path && r.path.includes("containers") && r.path.includes("image"));
   if (!hasMissingImage) {
-    console.error('Validator results:', results);
+    // Validator results: (output suppressed)
   }
   expect(hasMissingImage).toBe(true);
 });

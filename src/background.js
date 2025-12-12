@@ -1,12 +1,12 @@
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Guardon extension installed.");
+  // Extension installed
 });
 
 // Provide a fetch helper so popup can request raw file contents via the
 // extension service worker (bypasses page CORS limitations when host
 // permissions are granted in the manifest).
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (!msg || msg.type !== 'FETCH_RAW' || !msg.url) return;
+  if (!msg || msg.type !== "FETCH_RAW" || !msg.url) {return;}
   (async () => {
     try {
       const resp = await fetch(msg.url);

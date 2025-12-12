@@ -5,22 +5,22 @@
 
 (function () {
   function isKyvernoPolicy(doc) {
-    if (!doc || typeof doc !== 'object') return false;
-    const api = String(doc.apiVersion || '').toLowerCase();
-    const kind = String(doc.kind || '').toLowerCase();
-    return api.includes('kyverno.io') && (kind === 'policy' || kind === 'clusterpolicy');
+    if (!doc || typeof doc !== "object") {return false;}
+    const api = String(doc.apiVersion || "").toLowerCase();
+    const kind = String(doc.kind || "").toLowerCase();
+    return api.includes("kyverno.io") && (kind === "policy" || kind === "clusterpolicy");
   }
 
   // Walk a Kyverno validate.pattern object and collect leaf paths.
   // We produce dot-notation paths and convert array occurrences to `[*]`.
-  function collectPaths(obj, base = '', paths = []) {
+  function collectPaths(obj, base = "", paths = []) {
     if (obj === null || obj === undefined) {
       // treat presence of null as a leaf
       paths.push(base);
       return paths;
     }
 
-    if (typeof obj !== 'object') {
+    if (typeof obj !== "object") {
       // scalar leaf
       paths.push(base);
       return paths;
@@ -28,7 +28,7 @@
 
     if (Array.isArray(obj)) {
       // For arrays, treat as array-of-objects or array-of-scalars. Use [*]
-      const arrBase = base ? base + '[*]' : '[*]';
+      const arrBase = base ? base + "[*]" : "[*]";
       if (obj.length === 0) {
         paths.push(arrBase);
       } else {
@@ -43,7 +43,7 @@
       // Kyverno pattern keys sometimes use parentheses or leading '=' like
       // '=(env)' or '(name)'. Normalize to safe key names that match our
       // rules engine token regex (alphanum, underscore, hyphen).
-      const safeKey = String(k).replace(/[^a-zA-Z0-9_\-]/g, '');
+      const safeKey = String(k).replace(/[^a-zA-Z0-9_\-]/g, "");
       if (!safeKey) {
         // Fallback: if sanitizing removes everything, skip this key
         continue;
@@ -60,13 +60,13 @@
   // such an element and the `value` is a string starting with '!' we emit a
   // pattern-based rule that targets the element's `.value` and includes a
   // sibling condition so the rules engine can check the sibling `name`.
-  function convertPatternToRules(obj, base = '') {
+  function convertPatternToRules(obj, base = "") {
     const out = [];
-    if (obj === null || obj === undefined) return out;
-    if (typeof obj !== 'object') return out;
+    if (obj === null || obj === undefined) {return out;}
+    if (typeof obj !== "object") {return out;}
 
     if (Array.isArray(obj)) {
-      const arrBase = base ? `${base}[*]` : '[*]';
+      const arrBase = base ? `${base}[*]` : "[*]";
       if (obj.length > 0) {
         // Recurse into first element to infer the element structure
         out.push(...convertPatternToRules(obj[0], arrBase));
@@ -75,26 +75,26 @@
     }
 
     // If this object looks like an env entry with name & value keys, handle it.
-    const keys = Object.keys(obj).map(k => String(k).replace(/[^a-zA-Z0-9_\-]/g, ''));
-    if (keys.includes('name') && keys.includes('value')) {
-      const nameVal = obj['name'];
-      const valueVal = obj['value'];
-      if (typeof nameVal === 'string' && typeof valueVal === 'string') {
+    const keys = Object.keys(obj).map(k => String(k).replace(/[^a-zA-Z0-9_\-]/g, ""));
+    if (keys.includes("name") && keys.includes("value")) {
+      const nameVal = obj["name"];
+      const valueVal = obj["value"];
+      if (typeof nameVal === "string" && typeof valueVal === "string") {
         // If value begins with '!' it's a negative assertion in Kyverno
-        if (valueVal.startsWith('!')) {
+        if (valueVal.startsWith("!")) {
           const forbidden = valueVal.substring(1);
           // match the .value field of this element
-          const match = base ? `${base}.value` : 'value';
+          const match = base ? `${base}.value` : "value";
           out.push({
             match,
             pattern: `^${escapeRegExp(forbidden)}$`,
             required: false,
-            severity: 'warning',
+            severity: "warning",
             message: `Value must not be ${forbidden} (env ${nameVal})`,
-            siblingProperty: 'name',
+            siblingProperty: "name",
             siblingValue: nameVal,
             // Provide a suggestion to replace the forbidden value with the positive value
-            fix: { action: 'replace', value: forbidden, hint: `Replace env value for ${nameVal} to ${forbidden}` },
+            fix: { action: "replace", value: forbidden, hint: `Replace env value for ${nameVal} to ${forbidden}` },
           });
         } else {
           // Positive equality — interpret as a pattern that flags when the
@@ -103,16 +103,16 @@
           // literal (mirror Kyverno semantics depends on direction). Here we
           // flag exact matches (this may need refinement).
           const expected = valueVal;
-          const match = base ? `${base}.value` : 'value';
+          const match = base ? `${base}.value` : "value";
           out.push({
             match,
             pattern: `^${escapeRegExp(expected)}$`,
             required: false,
-            severity: 'warning',
+            severity: "warning",
             message: `Value must be ${expected} (env ${nameVal})`,
-            siblingProperty: 'name',
+            siblingProperty: "name",
             siblingValue: nameVal,
-            fix: { action: 'replace', value: expected, hint: `Set env ${nameVal} to ${expected}` },
+            fix: { action: "replace", value: expected, hint: `Set env ${nameVal} to ${expected}` },
           });
         }
       }
@@ -120,8 +120,8 @@
 
     // Recurse into object keys
     for (const k of Object.keys(obj)) {
-      const safeKey = String(k).replace(/[^a-zA-Z0-9_\-]/g, '');
-      if (!safeKey) continue;
+      const safeKey = String(k).replace(/[^a-zA-Z0-9_\-]/g, "");
+      if (!safeKey) {continue;}
       const nextBase = base ? `${base}.${safeKey}` : safeKey;
       out.push(...convertPatternToRules(obj[k], nextBase));
     }
@@ -129,22 +129,22 @@
   }
 
   function escapeRegExp(s) {
-    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   function normalizeKinds(kinds) {
-    if (!kinds) return '';
-    if (Array.isArray(kinds)) return kinds.join(',');
+    if (!kinds) {return "";}
+    if (Array.isArray(kinds)) {return kinds.join(",");}
     return String(kinds);
   }
 
   function convertDocs(docs) {
     const out = [];
-    if (!docs || !Array.isArray(docs)) return out;
+    if (!docs || !Array.isArray(docs)) {return out;}
 
     for (const doc of docs) {
-      if (!isKyvernoPolicy(doc)) continue;
-      const policyName = (doc.metadata && doc.metadata.name) || 'kyverno-policy';
+      if (!isKyvernoPolicy(doc)) {continue;}
+      const policyName = (doc.metadata && doc.metadata.name) || "kyverno-policy";
       const specRules = (doc.spec && Array.isArray(doc.spec.rules) && doc.spec.rules) || [];
       for (let ri = 0; ri < specRules.length; ri++) {
         const r = specRules[ri];
@@ -154,11 +154,11 @@
         // supports nested match clauses (any/all). Recursively search the
         // rule.match object for resources.kinds entries.
         function collectKinds(obj, out) {
-          if (!obj || typeof obj !== 'object') return;
+          if (!obj || typeof obj !== "object") {return;}
           if (obj.resources && obj.resources.kinds) {
             const k = obj.resources.kinds;
-            if (Array.isArray(k)) out.push(...k);
-            else out.push(k);
+            if (Array.isArray(k)) {out.push(...k);}
+            else {out.push(k);}
           }
           for (const key of Object.keys(obj)) {
             try { collectKinds(obj[key], out); } catch (e) { /* ignore */ }
@@ -174,7 +174,7 @@
 
         let collected = [];
         if (patternObj) {
-          collected = collectPaths(patternObj, '');
+          collected = collectPaths(patternObj, "");
         }
 
         // If we collected no specific leaves, but validate contains a message
@@ -189,7 +189,7 @@
           // Convert path like 'spec.template.spec.containers[*].resources' into
           // desired match format using [*] marker. Our collector already
           // produces '[*]' where arrays were detected.
-          const match = p.replace(/\[\*\]/g, '[*]');
+          const match = p.replace(/\[\*\]/g, "[*]");
           const id = `${policyName}:${ruleName}:${pi}`;
           const message = (validate && validate.message) || (r && r.message) || `${policyName}/${ruleName} - missing ${match}`;
           out.push({
@@ -197,21 +197,21 @@
             description: `${policyName}/${ruleName}`,
             kind: normalizeKinds(kinds),
             match,
-            pattern: '',
+            pattern: "",
             required: true,
-            severity: 'warning',
+            severity: "warning",
             message,
             // Provide a default fix suggestion for missing resources fields
-            fix: (match && match.toLowerCase().includes('resources')) ? {
-              action: 'insert',
-              value: { limits: { cpu: '250m', memory: '256Mi' }, requests: { cpu: '100m', memory: '128Mi' } },
-              hint: 'Add resource requests/limits for the container'
+            fix: (match && match.toLowerCase().includes("resources")) ? {
+              action: "insert",
+              value: { limits: { cpu: "250m", memory: "256Mi" }, requests: { cpu: "100m", memory: "128Mi" } },
+              hint: "Add resource requests/limits for the container"
             } : undefined,
           });
         }
           // Also convert any pattern-based rules (e.g., env name/value checks)
           if (patternObj) {
-            const conv = convertPatternToRules(patternObj, 'spec');
+            const conv = convertPatternToRules(patternObj, "spec");
             // The convertPatternToRules returns matches rooted at the pattern
             // object's path; in Kyverno the pattern often starts under 'spec',
             // but to be conservative we graft using empty base when necessary.
@@ -229,7 +229,7 @@
   }
 
   // Expose converter
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     window.kyvernoImporter = {
       convertDocs,
       _collectPaths: collectPaths, // exported for testing/debugging

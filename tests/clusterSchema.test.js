@@ -1,8 +1,8 @@
-const { parseSchemaText, summarizeSchema } = require('../src/utils/clusterSchema.js');
+const { parseSchemaText, summarizeSchema } = require("../src/utils/clusterSchema.js");
 
-describe('clusterSchema utilities', () => {
-  test('parses OpenAPI JSON', async () => {
-    const text = JSON.stringify({ openapi: '3.0.0', paths: {} });
+describe("clusterSchema utilities", () => {
+  test("parses OpenAPI JSON", async () => {
+    const text = JSON.stringify({ openapi: "3.0.0", paths: {} });
     const parsed = await parseSchemaText(text);
     expect(parsed.openapi).toBeTruthy();
     const s = summarizeSchema(parsed);
@@ -10,7 +10,7 @@ describe('clusterSchema utilities', () => {
     expect(s.crdCount).toBe(0);
   });
 
-  test('parses CRD YAML', async () => {
+  test("parses CRD YAML", async () => {
     const yaml = `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:

@@ -3,7 +3,7 @@
 // (extension content script, popup module, Node tests).
 
 async function resolveJsYaml() {
-  if (typeof globalThis !== 'undefined' && globalThis.jsyaml) return globalThis.jsyaml;
+  if (typeof globalThis !== "undefined" && globalThis.jsyaml) {return globalThis.jsyaml;}
 
   // In extension/content-script environments prefer a UMD bundle injected
   // by the manifest (content_scripts). If it's not present, don't attempt to
@@ -11,7 +11,7 @@ async function resolveJsYaml() {
   // chrome:// or chrome-extension:// from page scripts). Instead, fall back
   // to importing the npm package (Node/dev environments).
   try {
-    const mod = await import('js-yaml');
+    const mod = await import("js-yaml");
     return mod.default || mod;
   } catch (e) {
     throw new Error(
@@ -24,19 +24,19 @@ async function resolveJsYaml() {
 
 function _get(obj, path) {
   try {
-    if (!path) return obj;
-    const parts = path.split('.');
+    if (!path) {return obj;}
+    const parts = path.split(".");
     let cur = obj;
     for (let part of parts) {
       // support simple array index like items[0]
       const m = part.match(/([a-zA-Z0-9_\-]+)(?:\[(\d+)\])?/);
-      if (!m) return undefined;
+      if (!m) {return undefined;}
       const key = m[1];
       const idx = m[2] !== undefined ? parseInt(m[2], 10) : null;
-      if (cur == null || typeof cur !== 'object' || !(key in cur)) return undefined;
+      if (cur === null || typeof cur !== "object" || !(key in cur)) {return undefined;}
       cur = cur[key];
       if (idx !== null) {
-        if (!Array.isArray(cur)) return undefined;
+        if (!Array.isArray(cur)) {return undefined;}
         cur = cur[idx];
       }
     }
@@ -45,7 +45,7 @@ function _get(obj, path) {
     // Defensive: never throw from path resolution — return undefined so
     // callers (validation rules) treat missing paths as absent instead of
     // crashing when intermediate segments are not objects/arrays.
-    console.debug('[rulesEngine] _get defensive fallback for path', path, e && e.message);
+    // [rulesEngine] _get defensive fallback for path
     return undefined;
   }
 }
@@ -64,18 +64,18 @@ function _has(obj, path) {
 //  - 'metadata.name' -> 'metadata'
 //  - 'kind' -> '' (no parent)
 function getParentPath(path) {
-  if (!path) return '';
-  const parts = path.split('.');
-  if (parts.length <= 1) return '';
-  return parts.slice(0, -1).join('.');
+  if (!path) {return "";}
+  const parts = path.split(".");
+  if (parts.length <= 1) {return "";}
+  return parts.slice(0, -1).join(".");
 }
 
 export async function validateYaml(yamlText, rules) {
   const jsyaml = await resolveJsYaml();
   // Defensive: ensure yamlText is a string. js-yaml calls `input.split(...)`
   // internally and will throw if passed `undefined`.
-  if (yamlText == null) yamlText = '';
-  if (typeof yamlText !== 'string') yamlText = String(yamlText);
+  if (yamlText === null) {yamlText = "";}
+  if (typeof yamlText !== "string") {yamlText = String(yamlText);}
 
   let docs = [];
   try {
@@ -85,17 +85,17 @@ export async function validateYaml(yamlText, rules) {
   } catch (err) {
     // Include mark (line/column) when available so callers can highlight the error
     const parseErr = {
-      ruleId: 'parse-error',
-      severity: 'error',
-      message: 'Invalid YAML: ' + (err && err.message ? err.message : String(err)),
+      ruleId: "parse-error",
+      severity: "error",
+      message: "Invalid YAML: " + (err && err.message ? err.message : String(err)),
     };
-    if (err && err.mark && (typeof err.mark.line === 'number' || typeof err.mark.column === 'number')) {
+    if (err && err.mark && (typeof err.mark.line === "number" || typeof err.mark.column === "number")) {
       parseErr.mark = { line: err.mark.line, column: err.mark.column };
     }
     return [parseErr];
   }
 
-  if (!docs || docs.length === 0) return [];
+  if (!docs || docs.length === 0) {return [];}
 
   const results = [];
 
@@ -104,13 +104,13 @@ export async function validateYaml(yamlText, rules) {
     const doc = docs[docIndex];
     for (const rule of rules) {
       // Skip disabled rules (temporary disable feature)
-      if (rule && rule.enabled === false) continue;
+      if (rule && rule.enabled === false) {continue;}
       // Guard each rule evaluation so a missing intermediate path or
       // unexpected structure doesn't throw and break validation for the
       // entire document. If a rule cannot be evaluated we treat it as
       // not-present (for required checks) or not-matching (for patterns).
       try {
-        const matchPath = (rule.match || '').replace(/\[\*\]/g, '');
+        const matchPath = (rule.match || "").replace(/\[\*\]/g, "");
         const value = _get(doc, matchPath);
 
         // Kind filtering: if rule defines a comma-separated `kind` field,
@@ -119,13 +119,13 @@ export async function validateYaml(yamlText, rules) {
         // the rule is skipped.
         if (rule.kind) {
           const allowed = String(rule.kind)
-            .split(',')
+            .split(",")
             .map(s => s.trim())
             .filter(Boolean)
             .map(s => s.toLowerCase());
           if (allowed.length > 0) {
-            const docKind = _get(doc, 'kind');
-            if (docKind == null) {
+            const docKind = _get(doc, "kind");
+            if (docKind === null) {
               // No kind on this document -> skip rule
               continue;
             }
@@ -141,8 +141,8 @@ export async function validateYaml(yamlText, rules) {
         if (rule.pattern) {
           try {
             // If the rule.match contains a wildcard ([*]) perform per-element checks
-            const rawMatchForPattern = rule.match || '';
-            const starIdxPat = rawMatchForPattern.indexOf('[*]');
+            const rawMatchForPattern = rule.match || "";
+            const starIdxPat = rawMatchForPattern.indexOf("[*]");
             if (starIdxPat !== -1) {
               const basePath = rawMatchForPattern.substring(0, starIdxPat);
               const remainder = rawMatchForPattern.substring(starIdxPat + 3); // e.g. '.value'
@@ -151,21 +151,21 @@ export async function validateYaml(yamlText, rules) {
                 for (let i = 0; i < parentVal.length; i++) {
                   const elemPath = `${basePath}[${i}]${remainder}`;
                   const elemVal = _get(doc, elemPath);
-                  if (typeof elemVal !== 'string') continue;
+                  if (typeof elemVal !== "string") {continue;}
 
                   // If rule specifies a siblingProperty condition, evaluate it
                   if (rule.siblingProperty && rule.siblingValue !== undefined) {
-                    const lastDot = elemPath.lastIndexOf('.');
+                    const lastDot = elemPath.lastIndexOf(".");
                     const siblingPath = lastDot !== -1 ? `${elemPath.substring(0, lastDot + 1)}${rule.siblingProperty}` : `${rule.siblingProperty}`;
                     const sibVal = _get(doc, siblingPath);
-                    if (sibVal == null || String(sibVal) !== String(rule.siblingValue)) continue;
+                    if (sibVal === null || String(sibVal) !== String(rule.siblingValue)) {continue;}
                   }
 
                   let re;
                   try {
                     re = new RegExp(rule.pattern);
                   } catch (e) {
-                    console.debug('[rulesEngine] invalid RegExp in rule', rule.id, e && e.message);
+                    // [rulesEngine] invalid RegExp in rule
                     continue;
                   }
                   if (re.test(elemVal)) {
@@ -180,27 +180,27 @@ export async function validateYaml(yamlText, rules) {
                     if (rule && rule.fix) {
                       try {
                         const suggested = {};
-                        suggested.action = rule.fix.action || 'insert';
+                        suggested.action = rule.fix.action || "insert";
                         suggested.targetPath = elemPath;
                         // prefer structured value; fallback to raw fix.value
-                        if (rule.fix.value !== undefined) suggested.snippetObj = rule.fix.value;
-                        suggested.hint = rule.fix.hint || '';
+                        if (rule.fix.value !== undefined) {suggested.snippetObj = rule.fix.value;}
+                        suggested.hint = rule.fix.hint || "";
                         res.suggestion = suggested;
                       } catch (e) {}
                     }
                     results.push(res);
                   }
                 }
-              } else if (parentVal != null && typeof parentVal === 'object') {
+              } else if (parentVal !== null && typeof parentVal === "object") {
                 // Parent exists as non-array -> treat as single element
                 const elemPath = `${basePath}${remainder}`;
                 const elemVal = _get(doc, elemPath);
-                if (typeof elemVal === 'string') {
+                if (typeof elemVal === "string") {
                   if (rule.siblingProperty && rule.siblingValue !== undefined) {
-                    const lastDot = elemPath.lastIndexOf('.');
+                    const lastDot = elemPath.lastIndexOf(".");
                     const siblingPath = lastDot !== -1 ? `${elemPath.substring(0, lastDot + 1)}${rule.siblingProperty}` : `${rule.siblingProperty}`;
                     const sibVal = _get(doc, siblingPath);
-                    if (sibVal == null || String(sibVal) !== String(rule.siblingValue)) {
+                    if (sibVal === null || String(sibVal) !== String(rule.siblingValue)) {
                       // skip
                     } else {
                       let re2;
@@ -211,21 +211,21 @@ export async function validateYaml(yamlText, rules) {
                     }
                   } else {
                     let re2; try { re2 = new RegExp(rule.pattern); } catch (e) { continue; }
-                    if (re2.test(elemVal)) results.push({ ruleId: rule.id, severity: rule.severity, message: rule.message || rule.description, path: elemPath, docIndex });
+                    if (re2.test(elemVal)) {results.push({ ruleId: rule.id, severity: rule.severity, message: rule.message || rule.description, path: elemPath, docIndex });}
                   }
                 }
               }
             } else {
               // No wildcard: original behavior
-              const matchPath = (rule.match || '').replace(/\[\*\]/g, '');
+              const matchPath = (rule.match || "").replace(/\[\*\]/g, "");
               const valueForPattern = _get(doc, matchPath);
-              if (typeof valueForPattern === 'string') {
+              if (typeof valueForPattern === "string") {
                 // siblingProperty handling for non-wildcard: compute sibling path
                 if (rule.siblingProperty && rule.siblingValue !== undefined) {
-                  const lastDot = matchPath.lastIndexOf('.');
+                  const lastDot = matchPath.lastIndexOf(".");
                   const siblingPath = lastDot !== -1 ? `${matchPath.substring(0, lastDot + 1)}${rule.siblingProperty}` : `${rule.siblingProperty}`;
                   const sibVal = _get(doc, siblingPath);
-                  if (sibVal == null || String(sibVal) !== String(rule.siblingValue)) {
+                  if (sibVal === null || String(sibVal) !== String(rule.siblingValue)) {
                     // skip
                   } else {
                     let re3; try { re3 = new RegExp(rule.pattern); } catch (e) { re3 = null; }
@@ -233,8 +233,8 @@ export async function validateYaml(yamlText, rules) {
                       const res = { ruleId: rule.id, severity: rule.severity, message: rule.message || rule.description, path: rule.match, docIndex };
                       if (rule && rule.fix) {
                         try {
-                          const suggested = { action: rule.fix.action || 'replace', targetPath: matchPath, hint: rule.fix.hint || '' };
-                          if (rule.fix.value !== undefined) suggested.snippetObj = rule.fix.value;
+                          const suggested = { action: rule.fix.action || "replace", targetPath: matchPath, hint: rule.fix.hint || "" };
+                          if (rule.fix.value !== undefined) {suggested.snippetObj = rule.fix.value;}
                           res.suggestion = suggested;
                         } catch (e) {}
                       }
@@ -247,8 +247,8 @@ export async function validateYaml(yamlText, rules) {
                     const res = { ruleId: rule.id, severity: rule.severity, message: rule.message || rule.description, path: rule.match, docIndex };
                     if (rule && rule.fix) {
                       try {
-                        const suggested = { action: rule.fix.action || 'replace', targetPath: matchPath, hint: rule.fix.hint || '' };
-                        if (rule.fix.value !== undefined) suggested.snippetObj = rule.fix.value;
+                        const suggested = { action: rule.fix.action || "replace", targetPath: matchPath, hint: rule.fix.hint || "" };
+                        if (rule.fix.value !== undefined) {suggested.snippetObj = rule.fix.value;}
                         res.suggestion = suggested;
                       } catch (e) {}
                     }
@@ -258,7 +258,7 @@ export async function validateYaml(yamlText, rules) {
               }
             }
           } catch (e) {
-            console.debug('[rulesEngine] pattern evaluation error for rule', rule && rule.id, e && e.message);
+            // [rulesEngine] pattern evaluation error for rule
           }
         }
 
@@ -269,15 +269,15 @@ export async function validateYaml(yamlText, rules) {
         // spec.containers[*].resources is required, do NOT report if
         // spec.containers is absent).
         if (rule.required) {
-          const rawMatch = rule.match || '';
+          const rawMatch = rule.match || "";
           // Handle wildcard path like 'spec.containers[*].resources'
-          const starIdx = rawMatch.indexOf('[*]');
+          const starIdx = rawMatch.indexOf("[*]");
           if (starIdx !== -1) {
             const basePath = rawMatch.substring(0, starIdx); // e.g. 'spec.containers'
             const parentVal = _get(doc, basePath);
             // If parent (the array) is missing, skip reporting.
             if (parentVal === undefined || parentVal === null) {
-              console.debug(`[rulesEngine] skipping required check for ${rule.id} because wildcard parent ${basePath} is missing`);
+              // [rulesEngine] skipping required check for wildcard parent is missing
             }
             if (Array.isArray(parentVal)) {
               // Per-element reporting: for each element that does NOT have the
@@ -296,8 +296,8 @@ export async function validateYaml(yamlText, rules) {
                   };
                   if (rule && rule.fix) {
                     try {
-                      const suggested = { action: rule.fix.action || 'insert', targetPath: elemPath, hint: rule.fix.hint || '' };
-                      if (rule.fix.value !== undefined) suggested.snippetObj = rule.fix.value;
+                      const suggested = { action: rule.fix.action || "insert", targetPath: elemPath, hint: rule.fix.hint || "" };
+                      if (rule.fix.value !== undefined) {suggested.snippetObj = rule.fix.value;}
                       res.suggestion = suggested;
                     } catch (e) {}
                   }
@@ -320,8 +320,8 @@ export async function validateYaml(yamlText, rules) {
                 };
                 if (rule && rule.fix) {
                   try {
-                    const suggested = { action: rule.fix.action || 'insert', targetPath: elemPath, hint: rule.fix.hint || '' };
-                    if (rule.fix.value !== undefined) suggested.snippetObj = rule.fix.value;
+                    const suggested = { action: rule.fix.action || "insert", targetPath: elemPath, hint: rule.fix.hint || "" };
+                    if (rule.fix.value !== undefined) {suggested.snippetObj = rule.fix.value;}
                     res.suggestion = suggested;
                   } catch (e) {}
                 }
@@ -334,7 +334,7 @@ export async function validateYaml(yamlText, rules) {
             // If there's an explicit parent path and the parent is missing,
             // skip reporting the missing child to avoid noisy errors.
             if (parentPath && !_has(doc, parentPath)) {
-              console.debug(`[rulesEngine] skipping required check for ${rule.id} because parent ${parentPath} is missing`);
+              // [rulesEngine] skipping required check for parent is missing
             } else if (!_has(doc, matchPath)) {
               const res = {
                 ruleId: rule.id,
@@ -345,8 +345,8 @@ export async function validateYaml(yamlText, rules) {
               };
               if (rule && rule.fix) {
                 try {
-                  const suggested = { action: rule.fix.action || 'insert', targetPath: matchPath, hint: rule.fix.hint || '' };
-                  if (rule.fix.value !== undefined) suggested.snippetObj = rule.fix.value;
+                  const suggested = { action: rule.fix.action || "insert", targetPath: matchPath, hint: rule.fix.hint || "" };
+                  if (rule.fix.value !== undefined) {suggested.snippetObj = rule.fix.value;}
                   res.suggestion = suggested;
                 } catch (e) {}
               }
@@ -356,7 +356,7 @@ export async function validateYaml(yamlText, rules) {
         }
       } catch (e) {
         // Defensive: log and skip the rule rather than throwing up to callers.
-        console.debug(`[rulesEngine] skipped rule ${rule && rule.id} due to error`, e && e.message);
+        // [rulesEngine] skipped rule due to error
       }
     }
   }
@@ -367,22 +367,22 @@ export async function validateYaml(yamlText, rules) {
 // Attempt to find a path string (dot/array notation) in `obj` whose leaf
 // value equals or contains `target`. Returns the first matching path or null.
 function findPathByValue(obj, target) {
-  if (target == null) return null;
+  if (target === null) {return null;}
   const visited = new WeakSet();
 
   function helper(cur, path) {
-    if (cur && typeof cur === 'object') {
-      if (visited.has(cur)) return null;
+    if (cur && typeof cur === "object") {
+      if (visited.has(cur)) {return null;}
       visited.add(cur);
       if (Array.isArray(cur)) {
         for (let i = 0; i < cur.length; i++) {
           const p = helper(cur[i], `${path}[${i}]`);
-          if (p) return p;
+          if (p) {return p;}
         }
       } else {
         for (const k of Object.keys(cur)) {
           const p = helper(cur[k], path ? `${path}.${k}` : k);
-          if (p) return p;
+          if (p) {return p;}
         }
       }
       return null;
@@ -390,11 +390,11 @@ function findPathByValue(obj, target) {
 
     // Leaf node: compare
     try {
-      if (typeof target === 'string' && typeof cur === 'string') {
-        if (cur.includes(target) || cur === target) return path;
+      if (typeof target === "string" && typeof cur === "string") {
+        if (cur.includes(target) || cur === target) {return path;}
       } else {
         // loose equality check for numbers/booleans
-        if (cur === target) return path;
+        if (cur === target) {return path;}
       }
     } catch (e) {
       // ignore
@@ -402,18 +402,18 @@ function findPathByValue(obj, target) {
     return null;
   }
 
-  return helper(obj, '') || null;
+  return helper(obj, "") || null;
 }
 
 // Helpers to apply suggestion objects to a document object
 function setNested(obj, path, value) {
-  if (!path) return;
-  const parts = path.split('.');
+  if (!path) {return;}
+  const parts = path.split(".");
   let cur = obj;
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
     const m = part.match(/([a-zA-Z0-9_\-]+)(?:\[(\d+)\])?/);
-    if (!m) throw new Error('Invalid path part: ' + part);
+    if (!m) {throw new Error("Invalid path part: " + part);}
     const key = m[1];
     const idx = m[2] !== undefined ? parseInt(m[2], 10) : null;
     const isLast = i === parts.length - 1;
@@ -427,7 +427,7 @@ function setNested(obj, path, value) {
       return;
     }
     // ensure intermediate
-    if (!(key in cur) || cur[key] == null) {
+    if (!(key in cur) || cur[key] === null) {
       cur[key] = idx === null ? {} : [];
     }
     cur = cur[key];
@@ -439,13 +439,13 @@ function setNested(obj, path, value) {
 }
 
 function deleteNested(obj, path) {
-  if (!path) return;
-  const parts = path.split('.');
+  if (!path) {return;}
+  const parts = path.split(".");
   let cur = obj;
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
     const m = part.match(/([a-zA-Z0-9_\-]+)(?:\[(\d+)\])?/);
-    if (!m) return;
+    if (!m) {return;}
     const key = m[1];
     const idx = m[2] !== undefined ? parseInt(m[2], 10) : null;
     const isLast = i === parts.length - 1;
@@ -457,28 +457,28 @@ function deleteNested(obj, path) {
       }
       return;
     }
-    if (!(key in cur)) return;
+    if (!(key in cur)) {return;}
     cur = cur[key];
     if (idx !== null) {
-      if (!Array.isArray(cur)) return;
+      if (!Array.isArray(cur)) {return;}
       cur = cur[idx];
     }
-    if (cur == null) return;
+    if (cur === null) {return;}
   }
 }
 
 function applySuggestionToDoc(doc, suggestion, jsyaml) {
-  if (!suggestion) return;
-  const action = suggestion.action || 'insert';
+  if (!suggestion) {return;}
+  const action = suggestion.action || "insert";
   const target = suggestion.targetPath;
   let snippet = suggestion.snippetObj;
   if (snippet === undefined && suggestion.snippetYaml && jsyaml) {
     try { snippet = jsyaml.load(suggestion.snippetYaml); } catch (e) { snippet = undefined; }
   }
-  if (action === 'insert' || action === 'replace' || action === 'patch') {
+  if (action === "insert" || action === "replace" || action === "patch") {
     // For insert/replace, set the nested value
     setNested(doc, target, snippet === undefined ? (suggestion.snippetYaml || {}) : snippet);
-  } else if (action === 'remove') {
+  } else if (action === "remove") {
     deleteNested(doc, target);
   }
 }
@@ -489,9 +489,9 @@ export async function previewPatchedYaml(yamlText, docIndex, suggestion, opts = 
   try {
     jsyaml.loadAll(yamlText, (d) => docs.push(d));
   } catch (e) {
-    throw new Error('Failed to parse YAML for preview: ' + (e && e.message));
+    throw new Error("Failed to parse YAML for preview: " + (e && e.message));
   }
-  if (!docs[docIndex]) return null;
+  if (!docs[docIndex]) {return null;}
   const doc = docs[docIndex];
   applySuggestionToDoc(doc, suggestion, jsyaml);
   // Return the patched document YAML snippet (single-doc) or full multi-doc stream
@@ -500,7 +500,7 @@ export async function previewPatchedYaml(yamlText, docIndex, suggestion, opts = 
       // replace the doc at docIndex in docs and dump all with '---' separators
       docs[docIndex] = doc;
       const parts = docs.map(d => jsyaml.dump(d, { noRefs: true, sortKeys: false }));
-      return parts.join('\n---\n');
+      return parts.join("\n---\n");
     }
     return jsyaml.dump(doc, { noRefs: true, sortKeys: false });
   } catch (e) {

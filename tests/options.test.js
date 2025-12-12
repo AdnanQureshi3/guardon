@@ -1,9 +1,9 @@
 /**
  * @jest-environment jsdom
  */
-import { jest } from '@jest/globals';
+import { jest } from "@jest/globals";
 
-describe('options page behavior', () => {
+describe("options page behavior", () => {
   beforeEach(() => {
     jest.resetModules();
     // Minimal DOM elements expected by options.js
@@ -43,42 +43,42 @@ describe('options page behavior', () => {
         local: {
           _store: {},
           get: jest.fn((key, cb) => cb({ customRules: [] })),
-          set: jest.fn((obj, cb) => { global._lastSaved = obj; if (cb) cb(); })
+          set: jest.fn((obj, cb) => { global._lastSaved = obj; if (cb) {cb();} })
         }
       },
       runtime: { sendMessage: jest.fn() }
     };
   });
 
-  test('saving a rule persists explain metadata and fix parsing', async () => {
+  test("saving a rule persists explain metadata and fix parsing", async () => {
     // Import options.js after DOM and chrome mocks are in place
-    const module = await import('../src/options/options.js');
+    const module = await import("../src/options/options.js");
 
     // Simulate clicking add rule to show form defaults
-    document.getElementById('addRule').click();
+    document.getElementById("addRule").click();
 
     // Fill inputs
-    document.getElementById('ruleId').value = 't1';
-    document.getElementById('ruleDesc').value = 'desc';
-    document.getElementById('ruleKind').value = 'Pod';
-    document.getElementById('ruleMatch').value = 'metadata.name';
-    document.getElementById('rulePattern').value = '.*';
-    document.getElementById('ruleRequired').value = 'false';
-    document.getElementById('ruleSeverity').value = 'warning';
-    document.getElementById('ruleMessage').value = 'msg';
-    document.getElementById('ruleRationale').value = 'Because security';
-    document.getElementById('ruleReferences').value = 'https://kyverno.io,https://kubernetes.io';
+    document.getElementById("ruleId").value = "t1";
+    document.getElementById("ruleDesc").value = "desc";
+    document.getElementById("ruleKind").value = "Pod";
+    document.getElementById("ruleMatch").value = "metadata.name";
+    document.getElementById("rulePattern").value = ".*";
+    document.getElementById("ruleRequired").value = "false";
+    document.getElementById("ruleSeverity").value = "warning";
+    document.getElementById("ruleMessage").value = "msg";
+    document.getElementById("ruleRationale").value = "Because security";
+    document.getElementById("ruleReferences").value = "https://kyverno.io,https://kubernetes.io";
 
     // Click save
-    document.getElementById('saveRule').click();
+    document.getElementById("saveRule").click();
 
     // Expect chrome.storage.local.set to have been called and stored customRules
     expect(global.chrome.storage.local.set).toHaveBeenCalled();
     const saved = global._lastSaved && global._lastSaved.customRules && global._lastSaved.customRules[0];
     expect(saved).toBeDefined();
-    expect(saved.id).toBe('t1');
+    expect(saved.id).toBe("t1");
     expect(saved.explain).toBeDefined();
-    expect(saved.explain.rationale).toBe('Because security');
+    expect(saved.explain.rationale).toBe("Because security");
     expect(Array.isArray(saved.explain.refs)).toBe(true);
     expect(saved.explain.refs.length).toBe(2);
   });

@@ -108,7 +108,9 @@ function showToast(msg, opts = {}) {
 }
 function updateRuleCounter() {
   const el = document.getElementById("ruleCounterText");
-  if (!el) return;
+  if (!el){
+    return;
+  }
 
   const total = rules.length;
   const enabled = rules.filter(r => r.enabled !== false).length;

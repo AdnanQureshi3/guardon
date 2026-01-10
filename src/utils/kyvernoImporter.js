@@ -233,6 +233,18 @@
     window.kyvernoImporter = {
       convertDocs,
       _collectPaths: collectPaths, // exported for testing/debugging
+      escapeRegExp,
+      normalizeKinds
+    };
+  }
+
+  // Export for Node.js/CommonJS (for Jest and testability)
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = {
+      convertDocs,
+      _collectPaths: collectPaths,
+      escapeRegExp,
+      normalizeKinds
     };
   }
 })();

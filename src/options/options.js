@@ -1044,9 +1044,30 @@ if (doImportBtn) {
       }
     }
 
-    // If not Kyverno, not valid JSON, and looks like Rego, treat as Rego
+    // If not Kyverno, not valid JSON, and looks like Rego, treat as Rego (Kubernetes filter)
     const isRego = fileName.endsWith(".rego") || importText.trim().startsWith("package ") || importText.includes("policy.rego") || importText.includes("deny") || importText.includes("allow");
     if (triedYaml && !kyvernoConverted && isRego) {
+      // Kubernetes-related Rego detection (standard patterns)
+      // Only allow import if at least one Kubernetes-specific pattern is found
+      const k8sPatterns = [
+        /input\.(request|kubernetes|review)/i,
+        /apiVersion\s*[:=]/i,
+        /kind\s*[:=]/i,
+        /metadata\s*[:=]/i,
+        /spec\s*[:=]/i,
+        /pod(s)?/i,
+        /deployment(s)?/i,
+        /service(s)?/i,
+        /namespace(s)?/i,
+        /configmap(s)?/i,
+        /secret(s)?/i,
+        /ingress(es)?/i
+      ];
+      const isK8sRego = k8sPatterns.some(re => re.test(importText));
+      if (!isK8sRego) {
+        showToast("Only Kubernetes-related Rego policies can be imported. This file does not appear to reference Kubernetes resources.", { background: "#b91c1c" });
+        return;
+      }
       // Treat as plain text, wrap as a rule object
       const regoRule = {
         id: `rego-${Date.now()}`,

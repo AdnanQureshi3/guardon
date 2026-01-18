@@ -1,3 +1,67 @@
+// Restore renderTable function
+function renderTable() {
+  if (!tableBody) {return;}
+  tableBody.innerHTML = "";
+
+  // Here goes the search filter logic
+  const filteredRules = rules.filter(r => {
+    if (!ruleSearchQuery) {return true;}
+    return [r.id, r.description, r.match]
+      .some(v => String(v || "").toLowerCase().includes(ruleSearchQuery));
+  });
+  // if no matching rules found
+  if (filteredRules.length === 0 && ruleSearchQuery) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 6;
+    td.textContent = "No matching rules";
+    td.style.textAlign = "center";
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+    updateRuleCounter();
+    return;
+  }
+  filteredRules.forEach((r, idx) => {
+    const tr = document.createElement("tr");
+    const tdId = document.createElement("td"); tdId.textContent = r.id || "";
+    const tdEnabled = document.createElement("td");
+    const enChk = document.createElement("input");
+    enChk.type = "checkbox";
+    enChk.checked = (r.enabled === undefined) ? true : !!r.enabled;
+    enChk.addEventListener("change", () => {
+      rules[idx].enabled = !!enChk.checked;
+      saveRules();
+      tr.style.opacity = enChk.checked ? "1" : "0.5";
+      updateRuleCounter();
+    });
+    tdEnabled.appendChild(enChk);
+    tdEnabled.style.textAlign = "center";
+    const tdDesc = document.createElement("td"); tdDesc.textContent = r.description || "";
+    const tdKind = document.createElement("td"); tdKind.textContent = r.kind || "";
+    const tdSeverity = document.createElement("td"); tdSeverity.textContent = r.severity || "";
+    const tdActions = document.createElement("td");
+    // Restore delete button
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑";
+    delBtn.title = "Delete";
+    delBtn.style.padding = "4px 8px";
+    delBtn.onclick = function() {
+      rules.splice(idx, 1);
+      saveRules();
+      renderTable();
+      showToast("Rule deleted", { background: "#b91c1c" });
+    };
+    tdActions.appendChild(delBtn);
+    tr.appendChild(tdId);
+    tr.appendChild(tdEnabled);
+    tr.appendChild(tdDesc);
+    tr.appendChild(tdKind);
+    tr.appendChild(tdSeverity);
+    tr.appendChild(tdActions);
+    tableBody.appendChild(tr);
+  });
+  updateRuleCounter();
+}
 // Add a button to clear all rules
 const clearRulesBtn = document.getElementById("clearRulesBtn");
 if (clearRulesBtn) {
@@ -110,7 +174,7 @@ if (kyvernoImportConvertedBtn) {kyvernoImportConvertedBtn.addEventListener("clic
     showToast("No converted rules selected to import.", { background: "#b91c1c" });
     return;
   }
-  applyNormalizedRules(selected);
+  applyNormalizedRules(selected, rules, saveRules, renderTable);
   _kyvernoPreviewState = null;
   try { kpHide(); } catch {}
 });}
@@ -634,20 +698,6 @@ if (exportRulesBtn) {
 //     showToast("Failed to render Kyverno preview", { background: "#b91c1c" });
 //   }
 // }
-function showToast(msg, opts = {}) {
-  const toast = document.getElementById("toast");
-  if (!toast) {return;}
-  toast.textContent = msg;
-  toast.style.background = opts.background || "#111";
-  toast.style.display = "block";
-  toast.style.opacity = "1";
-  clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(() => {
-    toast.style.transition = "opacity 300ms ease";
-    toast.style.opacity = "0";
-    setTimeout(() => (toast.style.display = "none"), 300);
-  }, opts.duration || 2500);
-}
 function updateRuleCounter() {
   const el = document.getElementById("ruleCounterText");
   if (!el) {return;}
@@ -663,77 +713,8 @@ function updateRuleCounter() {
   }
 }
 
-function renderTable() {
-  if (!tableBody) {return;}
-  tableBody.innerHTML = "";
-
-  //Here goes the search filter logic
-  const filteredRules = rules.filter(r => {
-    if (!ruleSearchQuery) {return true;};
-    return [r.id, r.description, r.match]
-      .some(v => String(v || "").toLowerCase().includes(ruleSearchQuery));
-  });
-  //if no matching rules found
-  if (filteredRules.length === 0 && ruleSearchQuery) {
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.colSpan = 6;
-    td.textContent = "No matching rules";
-    td.style.textAlign = "center";
-    tr.appendChild(td);
-    tableBody.appendChild(tr);
-    updateRuleCounter();
-    return;
-  }
-  filteredRules.forEach((r, idx) => {
-    const tr = document.createElement("tr");
-    const tdId = document.createElement("td"); tdId.textContent = r.id || "";
-    const tdEnabled = document.createElement("td");
-    const enChk = document.createElement("input");
-    enChk.type = "checkbox";
-    enChk.checked = (r.enabled === undefined) ? true : !!r.enabled;
-    enChk.addEventListener("change", () => {
-      rules[idx].enabled = !!enChk.checked;
-      saveRules();
-      tr.style.opacity = enChk.checked ? "1" : "0.5";
-      updateRuleCounter();
-    });
-    tdEnabled.appendChild(enChk);
-    tdEnabled.style.textAlign = "center";
-    const tdDesc = document.createElement("td"); tdDesc.textContent = r.description || "";
-    const tdKind = document.createElement("td"); tdKind.textContent = r.kind || "";
-    const tdSeverity = document.createElement("td"); tdSeverity.textContent = r.severity || "";
-    const tdActions = document.createElement("td");
-
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.innerHTML = "✏️";
-    editBtn.title = "Edit";
-    editBtn.setAttribute("aria-label", "Edit");
-    editBtn.addEventListener("click", () => editRule(idx));
-
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.innerHTML = "🗑";
-    delBtn.title = "Delete";
-    delBtn.setAttribute("aria-label", "Delete");
-    delBtn.addEventListener("click", () => deleteRule(idx));
-
-    tdActions.appendChild(editBtn);
-    tdActions.appendChild(delBtn);
-
-    tr.appendChild(tdId);
-    tr.appendChild(tdEnabled);
-    tr.style.opacity = (r.enabled === undefined || r.enabled) ? "1" : "0.5";
-    tr.appendChild(tdDesc);
-    tr.appendChild(tdKind);
-    tr.appendChild(tdSeverity);
-    tr.appendChild(tdActions);
-    tableBody.appendChild(tr);
-  });
-  updateRuleCounter();
-
-}
+import { showToast, saveRawKyverno, applyNormalizedRules } from "./utils.js";
+// ...existing code...
 
 function hideKyvernoPreview() {
   _kyvernoPreviewState = null;
@@ -1080,7 +1061,7 @@ if (doImportBtn) {
         message: "Imported OPA/Rego policy",
         rego: importText
       };
-      const importedCount = applyNormalizedRules([regoRule]);
+      const importedCount = applyNormalizedRules([regoRule], rules, saveRules, renderTable);
       if (importedCount > 0 && importPanelModal) {
         importPanelModal.style.display = "none";
         if (importFile) {importFile.value = "";}
@@ -1097,7 +1078,7 @@ if (doImportBtn) {
       showToast("JSON must be an array or { customRules: [...] }", { background: "#b91c1c" });
       return;
     }
-    const importedCount = applyNormalizedRules(rulesArr);
+    const importedCount = applyNormalizedRules(rulesArr, rules, saveRules, renderTable);
     if (importedCount > 0 && importPanelModal) {
       importPanelModal.style.display = "none";
       if (importFile) {importFile.value = "";}
@@ -1112,25 +1093,6 @@ function saveRules() {
 }
 
 // Save original Kyverno policy text into storage for auditability.
-function saveRawKyverno(rawText, meta = {}) {
-  try {
-    const entry = {
-      id: meta.id || `kyverno-${Date.now()}`,
-      url: meta.url || null,
-      savedAt: new Date().toISOString(),
-      text: rawText,
-    };
-    chrome.storage.local.get("rawKyvernoPolicies", (data) => {
-      const arr = Array.isArray(data.rawKyvernoPolicies) ? data.rawKyvernoPolicies : [];
-      arr.push(entry);
-      chrome.storage.local.set({ rawKyvernoPolicies: arr }, () => {
-        showToast("Stored original Kyverno policy for audit", { background: "#0ea5e9" });
-      });
-    });
-  } catch {
-    // Failed to save raw Kyverno
-  }
-}
 
 // Wire Kyverno preview action buttons (wrappers are implemented in kyvernoPreview.js)
 
@@ -1138,42 +1100,6 @@ function saveRawKyverno(rawText, meta = {}) {
 // the current `rules` collection. This mirrors the import logic used for
 // JSON imports: normalize fields, avoid duplicates (replace by id), persist
 // and refresh the table.
-function applyNormalizedRules(items) {
-  if (!Array.isArray(items) || items.length === 0) {return 0;}
-  const normalized = items.map(r => ({
-    id: String(r.id || (r.description ? r.description.replace(/\s+/g,"-").toLowerCase() : `rule-${Date.now()}`)).trim(),
-    description: r.description || r.desc || "",
-    kind: r.kind || "",
-    match: r.match || "",
-    pattern: r.pattern || "",
-    required: (r.required === true || r.required === "true"),
-    severity: r.severity || "warning",
-    message: r.message || "",
-    fix: r.fix !== undefined ? r.fix : undefined,
-    explain: r.explain || undefined,
-  }));
-
-  let added = 0, replaced = 0;
-  for (const nr of normalized) {
-    if (!nr.id) {continue;}
-    const idx = rules.findIndex(r => r.id === nr.id);
-    if (idx !== -1) {
-      // Overwrite existing rule with same id
-      rules[idx] = nr;
-      replaced++;
-    } else {
-      rules.push(nr);
-      added++;
-    }
-  }
-
-  if (added || replaced) {
-    try { saveRules(); } catch { /* saveRules failed */ }
-    try { renderTable(); } catch { /* renderTable failed */ }
-    showToast(`Imported ${added} new, replaced ${replaced} existing rule(s)`, { background: "#059669" });
-  }
-  return added + replaced;
-}
 
 if (kyvernoCancelBtn) {kyvernoCancelBtn.addEventListener("click", hideKyvernoPreview);}
 if (kyvernoImportRawBtn) {kyvernoImportRawBtn.addEventListener("click", () => {
@@ -1202,7 +1128,7 @@ if (kyvernoImportConvertedBtn) {kyvernoImportConvertedBtn.addEventListener("clic
   }
   // Overwrite rules with only selected Kyverno rules
   rules = [];
-  applyNormalizedRules(selected);
+  applyNormalizedRules(selected, rules, saveRules, renderTable);
   _kyvernoPreviewState = null;
   hideKyvernoPreview();
 });}

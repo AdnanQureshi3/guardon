@@ -1,3 +1,12 @@
+import { showOpaImportModal } from "./opaImport.js";
+import { updateOpaWasmTable, initOpaWasmTable } from "./opaWasmTable.js";
+const opaImportBtn = document.getElementById("opaImport");
+if (opaImportBtn) {
+  opaImportBtn.onclick = () => showOpaImportModal(updateOpaWasmTable);
+}
+
+// Initialize OPA WASM table on load
+initOpaWasmTable();
 // Restore renderTable function
 function renderTable() {
   if (!tableBody) {return;}
@@ -336,7 +345,7 @@ try {
 document.addEventListener("DOMContentLoaded", () => {
   // All OpenAPI modal event listeners and DOM queries must be inside this block
   refreshOpenAPIDisplay();
-  // refreshCRDDisplay(); // Uncomment if you want to show CRDs as well
+  refreshCRDDisplay();
 
   const openAPIFile = document.getElementById("openAPIFile");
   const openAPITextarea = document.getElementById("openAPITextarea");

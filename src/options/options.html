@@ -281,7 +281,7 @@
         <button id="cancelImport" title="Cancel" aria-label="Cancel">✖</button>
       </div>
     </div>
-  </div>
+ </div> 
 
   <!-- Resource validation is performed by the extension runtime (popup/content script). -->
 
@@ -343,6 +343,7 @@
   <div style="margin-top:30px;display:flex;gap:12px;">
     <button id="openAPIImport" title="Import Kubernetes API" aria-label="Import Kubernetes API">🔷 Import Kubernetes API</button>
     <button id="crdImport" title="Import CRD" aria-label="Import CRD">🟩 Import CRD</button>
+    <button id="opaImport" title="Import OPA Rules" aria-label="Import OPA Rules">🟦 Import OPA Rules</button>
     </div>
 
     <!-- OpenAPI Details Display as Table (Main Window) -->
@@ -391,6 +392,25 @@
       </div>
     </div>
   </div>
+
+  
+<!-- OPA WASM Policy Table (Main Window, after CRD table) -->
+<div id="opaWasmDisplay" style="display:none;margin-top:24px;padding:10px;background:#f0f6ff;border-left:3px solid #2563eb;border-radius:4px;">
+  <div style="font-weight:600;margin-bottom:8px;color:#1a1a1a;">✓ OPA WASM Policies (<span id="opaWasmCount">0</span>)</div>
+  <div id="opaWasmTableWrapper" style="overflow-x:auto;margin-top:8px;">
+    <table id="opaWasmTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#f0f6ff;border-bottom:1px solid #bfdbfe;">
+          <th style="padding:6px;text-align:left;">File Name</th>
+          <th style="padding:6px;text-align:left;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="opaWasmTableBody">
+        <!-- Rows populated by options.js -->
+      </tbody>
+    </table>
+  </div>
+</div>
 
   <!-- OpenAPI Import Panel Modal Popup -->
   <div id="openAPIPanelModal" class="modal-overlay">

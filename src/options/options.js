@@ -49,16 +49,23 @@ function renderTable() {
     const tdKind = document.createElement("td"); tdKind.textContent = r.kind || "";
     const tdSeverity = document.createElement("td"); tdSeverity.textContent = r.severity || "";
     const tdActions = document.createElement("td");
-    // Restore delete button
+    // Edit button
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.title = "Edit";
+    editBtn.style.padding = "4px 8px";
+    editBtn.onclick = function() {
+      if (typeof window.editRule === "function") { window.editRule(idx); }
+    };
+    tdActions.appendChild(editBtn);
+
+    // Delete button (with confirmation modal)
     const delBtn = document.createElement("button");
     delBtn.textContent = "🗑";
     delBtn.title = "Delete";
     delBtn.style.padding = "4px 8px";
     delBtn.onclick = function() {
-      rules.splice(idx, 1);
-      saveRules();
-      renderTable();
-      showToast("Rule deleted", { background: "#b91c1c" });
+      if (typeof window.deleteRule === "function") { window.deleteRule(idx); }
     };
     tdActions.appendChild(delBtn);
     tr.appendChild(tdId);
@@ -732,7 +739,7 @@ window.editRule = function (idx) {
 };
 
 window.deleteRule = function (idx) {
-  showDeleteConfirmation(idx);
+  showDeleteConfirmation(idx, rules, saveRules, renderTable, showToast);
 };
 
 

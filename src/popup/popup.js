@@ -353,9 +353,10 @@ async function initPopup() {
                 }
               }
             }
+            const hasSchemas = !!(csData && ((Array.isArray(csData.openapis) && csData.openapis.length > 0) || (Array.isArray(csData.crds) && csData.crds.length > 0) || csData.openapi));
             if (schemaResults.length === 0) {
-              if (csData && csData.openapis && Object.keys(csData.openapis).length > 0) {
-                schemaDiagnostic = "Schema present, but no matching schema found for this resource. Check apiVersion/kind and schema keys.";
+              if (hasSchemas) {
+                schemaDiagnostic = "Schema-based validation: no issues found for this resource.";
               } else {
                 schemaDiagnostic = "No schema present for this resource.";
               }
@@ -540,9 +541,10 @@ async function initPopup() {
           }
         }
         // Diagnostic: show what schema was matched and summary of results
+        const hasSchemas = !!(csData && ((Array.isArray(csData.openapis) && csData.openapis.length > 0) || (Array.isArray(csData.crds) && csData.crds.length > 0) || csData.openapi));
         if (schemaResults.length === 0) {
-          if (csData && csData.openapis && Object.keys(csData.openapis).length > 0) {
-            schemaDiagnostic = "Schema present, but no matching schema found for this resource. Check apiVersion/kind and schema keys.";
+          if (hasSchemas) {
+            schemaDiagnostic = "Schema-based validation: no issues found for this resource.";
           } else {
             schemaDiagnostic = "No schema present for this resource.";
           }

@@ -17,6 +17,8 @@ export function showOpaImportModal(onSaveCallback) {
       </div>
     `;
     document.body.appendChild(modal);
+    // Ensure newly created modal is visible on first open
+    modal.style.display = 'flex';
   } else {
     modal.style.display = 'flex';
   }

@@ -11,6 +11,9 @@
     "https://www.gitlab.com/*"
   ],
   "background": { "service_worker": "src/background.js" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -23,11 +26,13 @@
       "type": "module"
     }
   ],
+  
   "web_accessible_resources": [
     {
       "resources": [
         "src/utils/*.js",
         "src/lib/*.js",
+        "src/lib/opa-wasm-bundle.js",
         "src/popup/*.js"
       ],
       "matches": ["<all_urls>"]

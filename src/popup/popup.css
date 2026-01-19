@@ -2,11 +2,11 @@ html, body {
   margin: 0;
   padding: 0;
   /* Use flexible sizing so the extension popup can resize naturally
-     while capping maximum dimensions for readability. */
-  min-width: 320px;
-  max-width: 700px;
-  width: 520px;
-  max-height: 780px;
+    while capping maximum dimensions for readability. */
+  min-width: 360px;
+  max-width: 720px;
+  width: 560px;
+  max-height: 640px;
   overflow-y: auto;
   font-family: "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(180deg, #f7fbff 0%, #f0f6ff 100%);
@@ -15,17 +15,30 @@ html, body {
 }
 
 #container {
-  padding: 14px 16px;
+  padding: 14px 16px 16px 16px;
   box-sizing: border-box;
 }
 
 /* Header */
+.popup-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
 h2 {
-  margin: 0 0 8px 0;
+  margin: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  font-size: 17px;
 }
 
 h2 span.status {
@@ -37,14 +50,40 @@ h2 span.status {
   box-shadow: 0 2px 6px rgba(16,24,40,0.08);
 }
 
+.theme-toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-toggle {
+  padding: 6px 10px;
+}
+
+.theme-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
 .clean { background: linear-gradient(90deg,#34d399,#059669); }   /* green */
 .warning { background: linear-gradient(90deg,#fbbf24,#f97316); } /* yellow/orange */
 .error { background: linear-gradient(90deg,#fb7185,#ef4444); }     /* red */
 
+.header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 #bootStatus {
   font-size: 12px;
   color: #475569;
-  margin-bottom: 8px;
+}
+
+#fetchedNotice {
+  font-size: 13px;
+  color: #064e3b;
+  display: none;
 }
 
 /* Animated badge */
@@ -54,10 +93,27 @@ h2 span.status {
   50% { transform: scale(1.03); box-shadow: 0 8px 20px rgba(16,24,40,0.14); }
   100% { transform: scale(1); box-shadow: 0 2px 6px rgba(16,24,40,0.08); }
 }
-
-#summary { margin: 8px 0; font-size: 14px; }
+#summary,
+.summary {
+  margin: 10px 0 6px 0;
+  font-size: 14px;
+}
 
 /* Manual input area */
+.manual-actions {
+  margin-top: 6px;
+}
+
+#manual {
+  margin: 8px 0 10px 0;
+}
+
+#manualLabel {
+  font-size: 13px;
+  display: block;
+  margin-bottom: 4px;
+}
+
 #manualYaml {
   display: block;
   width: 100%;
@@ -123,17 +179,22 @@ button.copy.secondary {
 button.copy:active { transform: translateY(1px); }
 
 /* Results table */
-#resultsTable {
-  width: 100%;
-  border-collapse: collapse;
+#resultsWrapper {
   margin-top: 10px;
-  background: #fff;
+  max-height: 360px;
+  overflow-y: auto;
   border-radius: 8px;
-  overflow: hidden;
   box-shadow: 0 6px 18px rgba(2,6,23,0.06);
 }
 
-#resultsTable th, #resultsTable td {
+#resultsTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+#resultsTable th,
+#resultsTable td {
   padding: 8px 10px;
   font-size: 13px;
   border-bottom: 1px solid #eef2f7;
@@ -145,9 +206,89 @@ td.error { color: #b91c1c; font-weight:700; }
 td.warning { color: #b45309; font-weight:700; }
 td.info { color: #0ea5e9; }
 
-#noYaml { color: #475569; font-style: italic; }
+#noYaml { color: #475569; font-style: italic; margin-top: 8px; }
 
-#copyReport { margin-top: 10px; }
+.footer-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#copyReport { margin-top: 0; }
+
+/* Messages that contain multiple lines */
+.message-list {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 0;
+}
+
+.message-list li {
+  margin: 2px 0;
+}
+
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.55);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-panel {
+  background: #ffffff;
+  max-width: 700px;
+  width: 90%;
+  max-height: 80%;
+  overflow: auto;
+  padding: 16px 18px;
+  border-radius: 10px;
+  box-shadow: 0 18px 45px rgba(15,23,42,0.35);
+}
+
+.modal-panel-wide {
+  max-width: 900px;
+}
+
+.modal-hint {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.modal-pre {
+  background: #f7f7f7;
+  padding: 12px;
+  border-radius: 6px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  font-size: 12px;
+}
+
+.modal-rationale {
+  font-size: 13px;
+  color: #111;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.modal-refs {
+  font-size: 13px;
+  color: #0b5394;
+  margin-bottom: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
 
 /* Small responsive tweaks */
 @media (max-width: 420px) {

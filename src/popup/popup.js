@@ -1,4 +1,5 @@
-document.addEventListener("DOMContentLoaded", async () => {
+async function initPopup() {
+  console.log("[Guardon popup] initPopup starting");
   const summary = document.getElementById("summary");
   const resultsTable = document.getElementById("resultsTable");
   const resultsBody = document.getElementById("resultsBody");
@@ -55,11 +56,119 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Helpers for chrome.storage.local using Promises
+  function storageGet(keys) {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.local.get(keys, (items) => {
+          if (chrome.runtime && chrome.runtime.lastError) {
+            console.error("[Guardon popup] storage.get error:", chrome.runtime.lastError);
+            return resolve({});
+          }
+          resolve(items || {});
+        });
+      } catch (e) {
+        console.error("[Guardon popup] storage.get threw:", e);
+        resolve({});
+      }
+    });
+  }
+
+  // Compute a human-friendly source label for each result row
+  function getSourceLabel(r) {
+    if (r && r.source) {return r.source;}
+    const id = r && r.ruleId ? String(r.ruleId) : "";
+    if (id.startsWith("schema-crd")) {return "CRD schema";}
+    if (id.startsWith("schema-openapi")) {return "OpenAPI schema";}
+    if (id.startsWith("schema-")) {return "Schema validation";}
+    return "Guardon rules";
+  }
+
+  // Normalize message text into one or more human-readable lines.
+  // If there are multiple messages (e.g. JSON array), they will be rendered
+  // as separate list items in the UI for better readability.
+  function normalizeMessageLines(msg) {
+    if (msg === null || msg === undefined) {return [""];}
+
+    let raw = msg;
+
+    // If we were given a JSON string representation, try to parse it first.
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
+        try {
+          raw = JSON.parse(trimmed);
+        } catch (e) {
+          // leave as original string on parse failure
+        }
+      }
+    }
+
+    let lines = [];
+
+    if (Array.isArray(raw)) {
+      // Multiple messages -> one line per entry
+      lines = raw.map(x => String(x));
+    } else if (raw && typeof raw === "object") {
+      // Best-effort: key/value pairs as individual lines
+      const parts = [];
+      for (const [k, v] of Object.entries(raw)) {
+        parts.push(`${k}: ${v}`);
+      }
+      lines = parts.length ? parts : [String(raw)];
+    } else {
+      lines = [String(raw)];
+    }
+
+    // Strip outer quotes and noisy braces from each line
+    lines = lines.map(line => {
+      let s = String(line).trim();
+      s = s.replace(/^"([\s\S]*)"$/, "$1");
+      s = s.replace(/[{}]/g, "");
+      return s;
+    }).filter(s => s.length > 0);
+
+    return lines.length ? lines : [""];
+  }
+
+  // Helper to render one or more message lines into a table cell.
+  function setMessageCellContent(td, msg) {
+    const lines = normalizeMessageLines(msg);
+    if (lines.length <= 1) {
+      td.textContent = lines[0] || "";
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "message-list";
+    lines.forEach(line => {
+      const li = document.createElement("li");
+      li.textContent = line;
+      ul.appendChild(li);
+    });
+    td.appendChild(ul);
+  }
+
+  function storageSet(obj) {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.local.set(obj, () => {
+          if (chrome.runtime && chrome.runtime.lastError) {
+            console.error("[Guardon popup] storage.set error:", chrome.runtime.lastError);
+          }
+          resolve();
+        });
+      } catch (e) {
+        console.error("[Guardon popup] storage.set threw:", e);
+        resolve();
+      }
+    });
+  }
+
   // Theme toggle: read persisted preference and wire the toggle
   const themeToggle = document.getElementById("themeToggle");
   async function loadTheme() {
     try {
-      const { popupTheme } = await chrome.storage.local.get("popupTheme");
+      const { popupTheme } = await storageGet("popupTheme");
       const theme = popupTheme || "light";
       if (theme === "dark") {
         document.documentElement.classList.add("dark");
@@ -77,7 +186,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const isDark = document.documentElement.classList.toggle("dark");
       if (document.body) {document.body.classList.toggle("dark", isDark);}
       try {
-        await chrome.storage.local.set({ popupTheme: isDark ? "dark" : "light" });
+        await storageSet({ popupTheme: isDark ? "dark" : "light" });
       } catch (e) {
         // ignore
       }
@@ -85,7 +194,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // Get the active tab using a Promise wrapper around the callback-based API
+  const [tab] = await new Promise((resolve) => {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (chrome.runtime.lastError) {
+          console.error("[Guardon popup] chrome.tabs.query error:", chrome.runtime.lastError);
+          return resolve([]);
+        }
+        resolve(tabs || []);
+      });
+    } catch (e) {
+      console.error("[Guardon popup] chrome.tabs.query threw:", e);
+      resolve([]);
+    }
+  });
+
+  if (!tab || !tab.url) {
+    console.warn("[Guardon popup] No active tab found; showing manual paste UI.");
+    showManualPasteUI();
+    return;
+  }
 
   // Always show manual paste option for non-GitHub/GitLab pages
   const pageUrl = new URL(tab.url);
@@ -146,7 +275,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!content) {return;}
         try {
           // Run Guardon rules
-          const { customRules } = await chrome.storage.local.get("customRules");
+          const { customRules } = await storageGet("customRules");
           const rules = customRules || [];
           let results = await validateYaml(content, rules);
           // Also run schema-based validation and merge results
@@ -198,7 +327,60 @@ document.addEventListener("DOMContentLoaded", async () => {
             diagEl.parentNode.insertBefore(errEl, diagEl.nextSibling);
           }
           errEl.innerHTML = schemaErrorSection;
-          renderResults(results);
+
+          // --- OPA WASM evaluation for manual YAML ---
+          let opaResults = [];
+          try {
+            const stored = localStorage.getItem('opaWasmPolicy');
+            if (stored) {
+              const policy = JSON.parse(stored);
+              const wasmBuffer = new Uint8Array(policy.data).buffer;
+              const mod = await import('../lib/opa-wasm-bundle.js');
+              const opaWasm = mod.default;
+              const opaWasmInstance = await opaWasm.loadPolicy(wasmBuffer);
+
+              let inputObj = null;
+              try {
+                inputObj = globalThis.jsyaml ? globalThis.jsyaml.load(content) : JSON.parse(content);
+              } catch (e) {
+                inputObj = null;
+              }
+
+              if (inputObj) {
+                const opaResult = await opaWasmInstance.evaluate(inputObj);
+                if (Array.isArray(opaResult) && opaResult.length) {
+                  const mapped = opaResult.map((r, idx) => {
+                    const base = r && r.result ? r.result : r;
+
+                    // Skip entries that clearly indicate no violation (empty array/object)
+                    if (!base) { return null; }
+                    if (Array.isArray(base) && base.length === 0) { return null; }
+                    if (!Array.isArray(base) && typeof base === "object" && Object.keys(base).length === 0) { return null; }
+
+                    const ruleId = base && base.id ? `OPA:${base.id}` : `OPA:${idx+1}`;
+                    const message = base && base.reason ? base.reason : JSON.stringify(base);
+                    const sev = base && typeof base.severity === "string" ? String(base.severity).toLowerCase() : "error";
+                    return {
+                      severity: sev,
+                      ruleId,
+                      message,
+                      source: "OPA WASM"
+                    };
+                  }).filter(Boolean);
+
+                  if (mapped.length) {
+                    opaResults = mapped;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error('[OPA WASM] Manual evaluation error:', e);
+            opaResults = [{ severity: "error", ruleId: "OPA", message: "OPA WASM evaluation failed: " + (e && e.message), source: "OPA WASM" }];
+          }
+
+          const allResults = [...results, ...opaResults];
+          renderResults(allResults);
         } catch (err) {
           // Manual validation failed
           showValidationUnavailable("Validation failed — see console for details.");
@@ -224,7 +406,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   }
 
-  const { customRules } = await chrome.storage.local.get("customRules");
+  const { customRules } = await storageGet("customRules");
   const rules = customRules || [];
 
   if (!rules.length) {
@@ -239,9 +421,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     showValidationUnavailable("Validation engine failed to load; cannot validate YAML.");
     return;
   }
-  let results = [];
+  // --- OPA WASM JS runtime ---
+  let opaWasmInstance = null;
+  let opaWasmLoaded = false;
+  let opaWasmError = null;
+  let opaWasmPolicyMeta = null;
   try {
+    console.log('[OPA WASM] Attempting to load policy from localStorage...');
+    const stored = localStorage.getItem('opaWasmPolicy');
+    if (stored) {
+      console.log('[OPA WASM] Policy found in localStorage.');
+      const policy = JSON.parse(stored);
+      opaWasmPolicyMeta = policy;
+      const wasmBuffer = new Uint8Array(policy.data).buffer;
+      console.log('[OPA WASM] Importing OPA WASM JS bundle...');
+      const mod = await import('../lib/opa-wasm-bundle.js');
+      const opaWasm = mod.default;
+      console.log('[OPA WASM] Loading policy into OPA WASM runtime...');
+      opaWasmInstance = await opaWasm.loadPolicy(wasmBuffer);
+      opaWasmLoaded = true;
+    } else {
+      console.log('[OPA WASM] No policy found in localStorage. Skipping OPA WASM evaluation.');
+    }
+  } catch (err) {
+    console.error('[OPA WASM] Error loading policy:', err);
+    opaWasmError = err;
+    opaWasmLoaded = false;
+  }
+
+  let results = [];
+  let opaResults = [];
+  try {
+    // Run Guardon rules
     results = await validateYaml(yamlText, rules);
+
     // Also run schema-based validation (CRD/OpenAPI) if available and merge results
     let schemaResults = [];
     let schemaDiagnostic = "";
@@ -271,8 +484,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
           const errorCount = schemaResults.filter(r => r.severity === "error").length;
           schemaDiagnostic = `Schema-based validation: ${schemaResults.length} issue(s), ${errorCount} error(s).`;
-          // Show first few errors
-          schemaDiagnostic += "\n" + schemaResults.slice(0,3).map(r => `${r.path}: ${r.message}`).join("\n");
           // Show all schema errors in a dedicated section
           schemaErrorSection = schemaResults.filter(r => r.severity === "error").map(r => `<li><b>${r.path}</b>: ${r.message}</li>`).join("");
         }
@@ -301,6 +512,66 @@ document.addEventListener("DOMContentLoaded", async () => {
       diagEl.parentNode.insertBefore(errEl, diagEl.nextSibling);
     }
     errEl.innerHTML = schemaErrorSection;
+  } catch (err) {
+    // Validation engine threw an error
+    showValidationUnavailable("Validation failed — see console for details.");
+    return;
+  }
+
+  // --- OPA WASM evaluation ---
+  if (opaWasmLoaded && opaWasmInstance) {
+    try {
+      console.log('[OPA WASM] Evaluation code path reached. Preparing input...');
+      // OPA expects input as JSON; try to parse YAML as JSON
+      let inputObj = null;
+      try {
+        inputObj = globalThis.jsyaml ? globalThis.jsyaml.load(yamlText) : JSON.parse(yamlText);
+      } catch (e) {
+        inputObj = null;
+      }
+      if (inputObj) {
+        const opaResult = await opaWasmInstance.evaluate(inputObj);
+        console.log('[OPA WASM] Evaluation result:', opaResult);
+        if (Array.isArray(opaResult) && opaResult.length) {
+          const mapped = opaResult.map((r, idx) => {
+            const base = r && r.result ? r.result : r;
+
+            // Skip entries that clearly indicate no violation (empty array/object)
+            if (!base) { return null; }
+            if (Array.isArray(base) && base.length === 0) { return null; }
+            if (!Array.isArray(base) && typeof base === "object" && Object.keys(base).length === 0) { return null; }
+
+            const ruleId = base && base.id ? `OPA:${base.id}` : `OPA:${idx+1}`;
+            const message = base && base.reason ? base.reason : JSON.stringify(base);
+            const sev = base && typeof base.severity === "string" ? String(base.severity).toLowerCase() : "error";
+            return {
+              severity: sev,
+              ruleId,
+              message,
+              source: "OPA WASM"
+            };
+          }).filter(Boolean);
+
+          if (mapped.length) {
+            opaResults = mapped;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[OPA WASM] Error during evaluation:', e);
+      opaResults = [{ severity: "error", ruleId: "OPA", message: "OPA WASM evaluation failed: " + (e && e.message), source: "OPA WASM" }];
+    }
+  } else if (opaWasmError) {
+    opaResults = [{ severity: "error", ruleId: "OPA", message: "OPA WASM policy load error: " + (opaWasmError && opaWasmError.message), source: "OPA WASM" }];
+  } else {
+    // OPA WASM not loaded, so evaluation is skipped
+  }
+
+  // Merge Guardon and OPA results for display and reuse downstream
+  const allResults = [...results, ...opaResults];
+  results = allResults;
+  renderResults(results);
+
     // If parser produced a parse-error result, show the sanitized YAML text
     // that was passed to the parser so users can inspect what we validated.
     if (results && results.some(r => r.ruleId === "parse-error")) {
@@ -332,12 +603,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       const preEl = document.getElementById("debugYamlPre");
       if (preEl) {preEl.textContent = yamlText || "";}
     }
-  } catch (err) {
-    // Validation engine threw an error
-    showValidationUnavailable("Validation failed — see console for details.");
-    return;
-  }
-
   if (results.length === 0) {
   summary.innerHTML = "✅ No violations found — your YAML meets Guardon checks!";
     statusBadge.textContent = "CLEAN";
@@ -370,9 +635,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   summary.innerHTML = `
     Found <b>${results.length}</b> violation(s):
-    ${errorCount ? `❌ ${errorCount} error(s)` : ""}
-    ${warningCount ? ` ⚠️ ${warningCount} warning(s)` : ""}
-    ${infoCount ? ` ℹ️ ${infoCount} info(s)` : ""}
+    ${errorCount ? "❌ " + errorCount + " error(s)" : ""}
+    ${warningCount ? " ⚠️ " + warningCount + " warning(s)" : ""}
+    ${infoCount ? " ℹ️ " + infoCount + " info(s)" : ""}
   `;
 
   resultsBody.innerHTML = "";
@@ -383,8 +648,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     tdSeverity.className = r.severity;
     tdSeverity.innerHTML = `<span class="severity-icon">${icon}</span>${r.severity.toUpperCase()}`;
 
-    const tdRule = document.createElement("td"); tdRule.textContent = r.ruleId;
-    const tdMessage = document.createElement("td"); tdMessage.textContent = r.message;
+  const tdRule = document.createElement("td"); tdRule.textContent = r.ruleId;
+  const tdSource = document.createElement("td"); tdSource.textContent = getSourceLabel(r);
+  const tdMessage = document.createElement("td"); setMessageCellContent(tdMessage, r.message);
   const tdActions = document.createElement("td");
   tdActions.className = "actions-cell";
 
@@ -471,6 +737,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     tr.appendChild(tdSeverity);
     tr.appendChild(tdRule);
+    tr.appendChild(tdSource);
     tr.appendChild(tdMessage);
     tr.appendChild(tdActions);
     resultsBody.appendChild(tr);
@@ -534,7 +801,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     statusBadge.style.display = "inline-block";
     resultsTable.style.display = "table";
     copyBtn.style.display = "inline-block";
-    summary.innerHTML = `Found <b>${results.length}</b> violation(s): ${errorCount ? `❌ ${errorCount} error(s)` : ""} ${warningCount ? ` ⚠️ ${warningCount} warning(s)` : ""} ${infoCount ? ` ℹ️ ${infoCount} info(s)` : ""}`;
+    summary.innerHTML = `Found <b>${results.length}</b> violation(s): ${errorCount ? "❌ " + errorCount + " error(s)" : ""} ${warningCount ? " ⚠️ " + warningCount + " warning(s)" : ""} ${infoCount ? " ℹ️ " + infoCount + " info(s)" : ""}`;
     resultsBody.innerHTML = "";
     results.forEach(r => {
         const tr = document.createElement("tr");
@@ -543,8 +810,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         tdSeverity.className = r.severity;
         tdSeverity.innerHTML = `<span class="severity-icon">${icon}</span>${r.severity.toUpperCase()}`;
 
-        const tdRule = document.createElement("td"); tdRule.textContent = r.ruleId;
-        const tdMessage = document.createElement("td"); tdMessage.textContent = r.message;
+    const tdRule = document.createElement("td"); tdRule.textContent = r.ruleId;
+  const tdSource = document.createElement("td"); tdSource.textContent = getSourceLabel(r);
+  const tdMessage = document.createElement("td"); setMessageCellContent(tdMessage, r.message);
         const tdActions = document.createElement("td");
 
         if (r.suggestion) {
@@ -623,9 +891,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         tr.appendChild(tdSeverity);
         tr.appendChild(tdRule);
+        tr.appendChild(tdSource);
         tr.appendChild(tdMessage);
         tr.appendChild(tdActions);
         resultsBody.appendChild(tr);
     });
   }
-});
+  console.log("[Guardon popup] initPopup finished wiring UI");
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPopup);
+} else {
+  initPopup();
+}
+

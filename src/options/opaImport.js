@@ -40,6 +40,23 @@ export function showOpaImportModal(onSaveCallback) {
       name: file.name,
       data: Array.from(new Uint8Array(arrayBuffer))
     }));
+    // Load and instantiate OPA WASM using OPA WASM JS runtime
+    try {
+      // Dynamically import OPA WASM JS runtime
+      import('../lib/opa-wasm-bundle.js').then(mod => {
+        const opaWasm = mod.default;
+        const wasmBuffer = arrayBuffer;
+        opaWasm.loadPolicy(wasmBuffer).then(instance => {
+          // You can now use instance to evaluate input, etc.
+          window.opaWasmInstance = instance; // Expose for debugging/demo
+          console.log('OPA WASM policy loaded:', instance);
+        }).catch(err => {
+          console.error('Failed to instantiate OPA WASM:', err);
+        });
+      });
+    } catch (err) {
+      console.error('OPA WASM JS runtime load error:', err);
+    }
     modal.style.display = 'none';
     if (typeof onSaveCallback === 'function') {
       onSaveCallback({ name: file.name });

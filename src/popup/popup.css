@@ -127,6 +127,26 @@ h2 span.status {
   color: #0f1724;
 }
 
+/* Schema diagnostics (light theme defaults) */
+#schemaDiagnostic {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 12px;
+  white-space: pre-wrap;
+  color: #111827;
+}
+
+#schemaErrorSection {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
 /* Theme: dark */
 html.dark, body.dark {
   background: linear-gradient(180deg, #071125 0%, #081223 100%);
@@ -137,6 +157,17 @@ html.dark #manualYaml, body.dark #manualYaml { background:#0b1220; border-color:
 html.dark #resultsTable, body.dark #resultsTable { background:#071124; box-shadow: 0 6px 18px rgba(2,6,23,0.5); }
 html.dark #resultsTable thead th, body.dark #resultsTable thead th { background:#071828; color:#cbd5e1; }
 html.dark th, html.dark td, body.dark th, body.dark td { border-bottom:1px solid rgba(255,255,255,0.03); }
+/* Schema diagnostics + error sections in dark theme */
+html.dark #schemaDiagnostic, body.dark #schemaDiagnostic {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+html.dark #schemaErrorSection, body.dark #schemaErrorSection {
+  background: #111827;
+  border-color: #b91c1c;
+  color: #fee2e2;
+}
 
 /* Smooth color transitions when toggling theme */
 html, body, #summary, #manualYaml, #resultsTable, h2, #bootStatus {

@@ -19,6 +19,56 @@ async function initPopup() {
   const explainRefs = document.getElementById("explainRefs");
   const closeExplainBtn = document.getElementById("closeExplainBtn");
 
+  // Suggestion modal wiring (needs to work even when we only
+  // use manual validation on non-GitHub pages).
+  if (closeSuggestionBtn) {
+    closeSuggestionBtn.addEventListener("click", () => {
+      if (suggestionModal) { suggestionModal.style.display = "none"; }
+    });
+  }
+  if (copyPatchBtn) {
+    copyPatchBtn.addEventListener("click", async () => {
+      try {
+        const text = suggestionPre.textContent || "";
+        await navigator.clipboard.writeText(text);
+        showToast("Patched YAML copied");
+      } catch (e) {
+        showToast("Copy failed", { background: "#b91c1c" });
+      }
+    });
+  }
+  if (downloadPatchBtn) {
+    downloadPatchBtn.addEventListener("click", () => {
+      try {
+        const text = suggestionPre.textContent || "";
+        const blob = new Blob([text], { type: "text/yaml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "patched.yaml";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast("Downloaded patched YAML");
+      } catch (e) {
+        showToast("Download failed", { background: "#b91c1c" });
+      }
+    });
+  }
+
+  // Explain modal close button wiring (also needed for manual flow).
+  if (closeExplainBtn) {
+    closeExplainBtn.addEventListener("click", () => {
+      if (explainModal) { explainModal.style.display = "none"; }
+    });
+  }
+
+  // Track the YAML text currently being validated so that
+  // suggestion previews work consistently for both GitHub
+  // and manual-paste validation flows.
+  let currentYamlText = "";
+
   // Dynamically import the rules engine so we can show an error in the UI
   // if it fails to load (instead of a silent module load error).
   let validateYaml = null;
@@ -252,6 +302,11 @@ async function initPopup() {
     return;
   }
 
+  // Remember the YAML we successfully fetched so that
+  // suggestion previews and copied snippets can use the
+  // same base document.
+  currentYamlText = yamlText;
+
   function showManualPasteUI() {
     noYaml.style.display = "block";
     statusBadge.textContent = "NO YAML";
@@ -273,6 +328,9 @@ async function initPopup() {
         }
         const content = (document.getElementById("manualYaml") || { value: "" }).value;
         if (!content) {return;}
+        // For manual validations, keep the pasted YAML available
+        // for suggestion preview helpers.
+        currentYamlText = content;
         try {
           // Run Guardon rules
           const { customRules } = await storageGet("customRules");
@@ -315,7 +373,7 @@ async function initPopup() {
           if (!diagEl) {
             diagEl = document.createElement("div");
             diagEl.id = "schemaDiagnostic";
-            diagEl.style.cssText = "margin:8px 0;padding:8px;border:1px solid #eee;background:#f9f9f9;font-size:12px;white-space:pre-wrap;";
+            diagEl.style.cssText = "margin:8px 0;padding:8px;font-size:12px;white-space:pre-wrap;";
             summary.parentNode.insertBefore(diagEl, summary.nextSibling);
           }
           diagEl.textContent = schemaDiagnostic;
@@ -323,10 +381,17 @@ async function initPopup() {
           if (!errEl) {
             errEl = document.createElement("ul");
             errEl.id = "schemaErrorSection";
-            errEl.style.cssText = "margin:8px 0;padding:8px;border:1px solid #fbb;background:#fff0f0;font-size:13px;";
+            errEl.style.cssText = "margin:8px 0;padding:8px;font-size:13px;";
             diagEl.parentNode.insertBefore(errEl, diagEl.nextSibling);
           }
           errEl.innerHTML = schemaErrorSection;
+          // Hide the schema error section entirely when there are no
+          // schema errors so we don't show an empty red box.
+          if (!schemaErrorSection) {
+            errEl.style.display = "none";
+          } else {
+            errEl.style.display = "block";
+          }
 
           // --- OPA WASM evaluation for manual YAML ---
           let opaResults = [];
@@ -499,7 +564,7 @@ async function initPopup() {
     if (!diagEl) {
       diagEl = document.createElement("div");
       diagEl.id = "schemaDiagnostic";
-      diagEl.style.cssText = "margin:8px 0;padding:8px;border:1px solid #eee;background:#f9f9f9;font-size:12px;white-space:pre-wrap;";
+      diagEl.style.cssText = "margin:8px 0;padding:8px;font-size:12px;white-space:pre-wrap;";
       summary.parentNode.insertBefore(diagEl, summary.nextSibling);
     }
     diagEl.textContent = schemaDiagnostic;
@@ -508,10 +573,17 @@ async function initPopup() {
     if (!errEl) {
       errEl = document.createElement("ul");
       errEl.id = "schemaErrorSection";
-      errEl.style.cssText = "margin:8px 0;padding:8px;border:1px solid #fbb;background:#fff0f0;font-size:13px;";
+      errEl.style.cssText = "margin:8px 0;padding:8px;font-size:13px;";
       diagEl.parentNode.insertBefore(errEl, diagEl.nextSibling);
     }
     errEl.innerHTML = schemaErrorSection;
+    // Hide the schema error section box entirely when there are no
+    // schema errors so the UI doesn't show an empty panel.
+    if (!schemaErrorSection) {
+      errEl.style.display = "none";
+    } else {
+      errEl.style.display = "block";
+    }
   } catch (err) {
     // Validation engine threw an error
     showValidationUnavailable("Validation failed — see console for details.");
@@ -667,7 +739,7 @@ async function initPopup() {
           return;
         }
         try {
-          const patched = await previewPatchedYaml(yamlText, r.docIndex, r.suggestion, { fullStream: true });
+          const patched = await previewPatchedYaml(currentYamlText, r.docIndex, r.suggestion, { fullStream: true });
           suggestionHint.textContent = r.suggestion.hint || (r.message || "Suggested fix");
           suggestionPre.textContent = patched || "Failed to generate preview";
           suggestionModal.style.display = "flex";
@@ -757,28 +829,6 @@ async function initPopup() {
     copyBtn.textContent = "✅ Copied!";
     setTimeout(() => (copyBtn.textContent = "📋 Copy Report"), 1500);
   };
-  // Suggestion modal wiring
-  if (closeSuggestionBtn) {closeSuggestionBtn.addEventListener("click", () => { if (suggestionModal) {suggestionModal.style.display = "none";} });}
-  if (copyPatchBtn) {copyPatchBtn.addEventListener("click", async () => {
-    try {
-      const text = suggestionPre.textContent || "";
-      await navigator.clipboard.writeText(text);
-      showToast("Patched YAML copied");
-    } catch (e) { showToast("Copy failed", { background: "#b91c1c" }); }
-  });}
-  if (downloadPatchBtn) {downloadPatchBtn.addEventListener("click", () => {
-    try {
-      const text = suggestionPre.textContent || "";
-      const blob = new Blob([text], { type: "text/yaml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "patched.yaml"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      showToast("Downloaded patched YAML");
-    } catch (e) { showToast("Download failed", { background: "#b91c1c" }); }
-  });}
-  // Explain modal wiring
-  if (closeExplainBtn) {closeExplainBtn.addEventListener("click", () => { if (explainModal) {explainModal.style.display = "none";} });}
-  
   // renderResults helper used by manual validation
   function renderResults(results) {
     if (!results || results.length === 0) {
@@ -811,21 +861,25 @@ async function initPopup() {
         tdSeverity.innerHTML = `<span class="severity-icon">${icon}</span>${r.severity.toUpperCase()}`;
 
     const tdRule = document.createElement("td"); tdRule.textContent = r.ruleId;
-  const tdSource = document.createElement("td"); tdSource.textContent = getSourceLabel(r);
-  const tdMessage = document.createElement("td"); setMessageCellContent(tdMessage, r.message);
-        const tdActions = document.createElement("td");
+    const tdSource = document.createElement("td"); tdSource.textContent = getSourceLabel(r);
+    const tdMessage = document.createElement("td"); setMessageCellContent(tdMessage, r.message);
+      const tdActions = document.createElement("td");
+      tdActions.className = "actions-cell";
 
         if (r.suggestion) {
           const previewBtn = document.createElement("button");
           previewBtn.type = "button";
-          previewBtn.textContent = "Preview Patch";
+          previewBtn.className = "action-btn icon-btn preview";
+          previewBtn.title = "Preview patch";
+          previewBtn.setAttribute("aria-label", "Preview patch");
+          previewBtn.innerHTML = "🔧";
           previewBtn.addEventListener("click", async () => {
             if (!previewAvailable) {
               alert("Patch preview not available");
               return;
             }
             try {
-              const patched = await previewPatchedYaml(yamlText, r.docIndex, r.suggestion, { fullStream: true });
+              const patched = await previewPatchedYaml(currentYamlText, r.docIndex, r.suggestion, { fullStream: true });
               suggestionHint.textContent = r.suggestion.hint || (r.message || "Suggested fix");
               suggestionPre.textContent = patched || "Failed to generate preview";
               suggestionModal.style.display = "flex";
@@ -838,7 +892,10 @@ async function initPopup() {
 
           const copySnippetBtn = document.createElement("button");
           copySnippetBtn.type = "button";
-          copySnippetBtn.textContent = "Copy Snippet";
+          copySnippetBtn.className = "action-btn icon-btn copy";
+          copySnippetBtn.title = "Copy snippet";
+          copySnippetBtn.setAttribute("aria-label", "Copy snippet");
+          copySnippetBtn.innerHTML = "📋";
           copySnippetBtn.addEventListener("click", async () => {
             try {
               const j = globalThis.jsyaml;

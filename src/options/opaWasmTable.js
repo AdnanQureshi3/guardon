@@ -4,6 +4,12 @@ export function updateOpaWasmTable() {
   const display = document.getElementById('opaWasmDisplay');
   const tbody = document.getElementById('opaWasmTableBody');
   const countSpan = document.getElementById('opaWasmCount');
+  // If the options page DOM for the OPA table is not present
+  // (for example in certain tests), fail gracefully.
+  if (!display || !tbody || !countSpan) {
+    return;
+  }
+
   tbody.innerHTML = '';
   let policies = [];
   // For now, only one policy is supported (from localStorage)
